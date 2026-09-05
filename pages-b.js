@@ -18,21 +18,23 @@ async function dnaCallout(sku){
     '<b>'+sku+'</b> 的 DNA 状态为 <b>'+st+'</b>，请确认是否需要强制刷新。');
 }
 
-// 提交生成任务（product.trigger 注册产品身份；有白底图则同步触发 DNA 分析）
+// 提交生成任务（product.generate 触发模块生图；首次 SKU 需先有 DNA）
 async function submitTask(moduleKey){
   var input = document.querySelector('#page .form .ctl');
   var sku = input ? String(input.value || '').trim() : '';
   if (!sku) { alert('请先输入 SKU'); return; }
   var imgInput = document.querySelector('#page .form .ctl--img');
   var img = imgInput ? String(imgInput.value || '').trim() : '';
-  var payload = {sku: sku, market: 'US', product_name: sku};
-  if (img) payload.main_image_url = img;
-  var r = await L4.fetch('product.trigger', payload);
+  if (!img) { alert('请先粘贴产品白底图链接（用于生成参考）'); return; }
+  var payload = {
+    sku: sku, module: moduleKey, mode: 'scene',
+    image_url: img,
+    scene_descs: [{sceneSetting: 'the product in a modern minimalist setting with soft natural light, professional product photography'}],
+    aspect_ratio: '1:1', quality: '1K'
+  };
+  var r = await L4.fetch('product.generate', payload);
   if (r.success) {
-    var msg = img
-      ? '已提交：' + sku + ' → 同步触发 DNA 分析中（约 2-3 分钟），完成后可在"最近任务"查看。'
-      : '已提交：' + sku + ' → 产品身份已注册（待分析）。';
-    alert(msg);
+    alert('已提交生成任务：' + sku + '，正在生成图片（约 30-60 秒），完成后可在「最近任务 / 素材资产库」查看。');
     render();
   } else {
     alert('提交失败：' + (r.error || '未知错误'));
