@@ -18,7 +18,7 @@ async function dnaCallout(sku){
     '<b>'+sku+'</b> 的 DNA 状态为 <b>'+st+'</b>，请确认是否需要强制刷新。');
 }
 
-// 提交生成任务（product.generate 触发模块生图；首次 SKU 需先有 DNA）
+// 提交生成任务（product.generate 触发模块生图；有竞品 ASIN 时先触发 DNA/竞品分析）
 async function submitTask(moduleKey){
   var input = document.querySelector('#page .form .ctl');
   var sku = input ? String(input.value || '').trim() : '';
@@ -26,6 +26,17 @@ async function submitTask(moduleKey){
   var imgInput = document.querySelector('#page .form .ctl--img');
   var img = imgInput ? String(imgInput.value || '').trim() : '';
   if (!img) { alert('请先粘贴产品白底图链接（用于生成参考）'); return; }
+  var asinInput = document.querySelector('#page .form .ctl--asin');
+  var asinRaw = asinInput ? String(asinInput.value || '').trim() : '';
+  var competitorIds = asinRaw ? asinRaw.split(/[,，\s]+/).filter(Boolean).slice(0,3) : [];
+  // 有竞品 ASIN：先触发 DNA + COSMO + SORFTIME 竞品分析
+  if (competitorIds.length > 0) {
+    var t = await L4.fetch('product.trigger', {
+      sku: sku, market: 'US', product_name: sku,
+      main_image_url: img, competitor_ids: competitorIds
+    });
+    if (!t.success) { alert('竞品分析触发失败：' + (t.error || '未知错误')); return; }
+  }
   var payload = {
     sku: sku, module: moduleKey, mode: 'scene',
     image_url: img,
@@ -61,7 +72,9 @@ async function modulePage(opts){
     '<div class="form"><div class="fld"><label>SKU 选择</label>'+
     '<input class="ctl" value="'+sku+'" placeholder="输入SKU或从列表选择..."></div>'+
     '<div class="fld"><label>白底图 URL（可选）</label>'+
-    '<input class="ctl ctl--img" placeholder="粘贴产品白底图链接，有图则同步触发 DNA 分析（约2-3分钟）"></div></div>'+
+    '<input class="ctl ctl--img" placeholder="粘贴产品白底图链接，有图则同步触发 DNA 分析（约2-3分钟）"></div>'+
+    '<div class="fld"><label>竞品 ASIN（可选，1-3 个，逗号分隔）</label>'+
+    '<input class="ctl ctl--asin" placeholder="例如 B0G6K54D9F, B0C2K7DLVS"></div></div>'+
     await dnaCallout(sku)
   ) +
   panel('模块参数配置', '<div class="form g2">'+fields+'</div>') +
