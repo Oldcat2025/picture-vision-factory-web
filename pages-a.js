@@ -102,13 +102,15 @@ page('dash-overview', {
     };
     var stTone = function(s){ return s === 'SUCCESS' ? 'ok' : (s === 'FAILED' ? 'fail' : 'warn'); };
     var rows = tasks.slice(0, 5).map(function(t){
+      var tj = JSON.stringify(t).replace(/'/g, "&#39;");
       return [
         '<span class="m">'+String(t.id||'')+'</span>',
         t.sku || '-',
         t.module || '-',
         layerChip(t.layer),
         chip(t.status || '-', stTone(t.status)),
-        String(t.created_at || '-').slice(0,16)
+        String(t.created_at || '-').slice(0,16),
+        '<button class="btn btn--ghost" style="padding:2px 10px" onclick="taskDetailModal(JSON.parse(this.getAttribute(\'data-t\')))" data-t=\''+tj+'\'>详情</button>'
       ];
     });
     return flow([
@@ -118,7 +120,7 @@ page('dash-overview', {
       {t:'7个业务模块',s:'场景图/Listing/TikTok/...',n:bizCount,tone:'warn'},
       {t:'Layer 2',s:'统一生图引擎',n:layerCount.LAYER2,tone:'ok',go:'ledger-breakdown'}
     ]) + panel('最近活跃任务', table(
-      ['任务ID','SKU','模块','当前层级','状态','开始时间'],
+      ['任务ID','SKU','模块','当前层级','状态','开始时间','操作'],
       rows
     ));
   }

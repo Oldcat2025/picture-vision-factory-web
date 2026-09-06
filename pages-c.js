@@ -28,7 +28,7 @@ page('asset-gallery', {
         reusable: !!a.reusable_flag,
         channel: a.channel || '',
         go: '#asset-detail',
-        thumb: ''
+        assetId: a.id || ''
       };
     });
     return toolbar(
@@ -58,15 +58,20 @@ page('asset-detail', {
     limits: ['storage_ref字段不直接暴露完整路径（安全）']
   },
   body: async function(){
-    var r = await L4.fetch('assets.search', {limit: 1});
+    var aid = sessionStorage.getItem('vf_cur_asset') || '';
+    var r = aid
+      ? await L4.fetch('assets.get', {asset_id: aid})
+      : await L4.fetch('assets.search', {limit: 1});
     if (!r.success) return callout('warn', '数据加载失败', r.error || '未知错误');
-    var a = (r.data || [])[0];
-    if (!a) return callout('warn', '暂无资产', 'assets.search 未返回任何资产数据，请先生成资产');
+    var a = Array.isArray(r.data) ? r.data[0] : r.data;
+    if (!a) return callout('warn', '暂无资产', '请先生成资产');
     var reuse = a.reusable_flag ? chip('可复用','ok') : chip('定制','neutral');
     return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:16px">'+
-      '<div style="aspect-ratio:1;background:linear-gradient(135deg,var(--tint-100),var(--tint-50));border-radius:var(--r-card);'+
+      '<div style="aspect-ratio:1;background:var(--tint-50);border-radius:var(--r-card);'+
         'display:grid;place-items:center;border:1px solid var(--line);overflow:hidden">'+
-        '<span class="ph-ico" style="font-size:48px;color:var(--t-3)">▣</span>'+
+        (a.storage_ref
+          ? '<img src="'+a.storage_ref+'" style="width:100%;height:100%;object-fit:contain" alt="资产大图">'
+          : '<span class="ph-ico" style="font-size:48px;color:var(--t-3)">▣</span>')+
       '</div>'+
       panel('资产元数据', kv([
         ['资产ID','<span class="m">'+(a.id||'-')+'</span>'],

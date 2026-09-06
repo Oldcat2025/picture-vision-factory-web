@@ -261,10 +261,14 @@ function gallery(items){
       ? '<span class="gcard__reuse">可复用</span>'
       : '<span class="gcard__reuse no">定制</span>';
     var ch = a.channel ? '<span class="gcard__ch-corner">'+a.channel+'</span>' : '';
-    var go = a.go ? ' onclick="location.hash=\''+a.go+'\'"' : '';
+    var go = a.assetId
+      ? ' onclick="sessionStorage.setItem(\'vf_cur_asset\',\''+a.assetId+'\');location.hash=\''+(a.go||'#asset-detail')+'\'"'
+      : (a.go ? ' onclick="location.hash=\''+a.go+'\'"' : '');
     var imgInner = a.thumb
       ? '<img src="'+a.thumb+'" alt="'+a.sku+'">'
-      : '<span class="ph-ico">▣</span>';
+      : (a.assetId
+          ? '<img class="lazy-img" data-asset-id="'+a.assetId+'" src="" alt="'+a.sku+'">'
+          : '<span class="ph-ico">▣</span>');
     return '<div class="gcard"'+go+'>'+
       '<div class="gcard__img">'+imgInner+ch+'</div>'+
       '<div class="gcard__bd">'+
@@ -275,6 +279,51 @@ function gallery(items){
       '<button class="gcard__quote">引用到当前任务</button>'+
     '</div>';
   }).join('')+'</div>';
+}
+
+/* 懒加载缩略图：遍历 .lazy-img，按 asset id 异步取完整图 */
+function lazyLoadThumbs(){
+  var imgs = document.querySelectorAll('.lazy-img');
+  for (var i = 0; i < imgs.length; i++) {
+    (function(img){
+      var id = img.getAttribute('data-asset-id');
+      if (!id || img.src) return;
+      L4.fetch('assets.get', {asset_id: id}).then(function(r){
+        var d = r.data;
+        var item = Array.isArray(d) ? d[0] : d;
+        if (item && item.storage_ref) img.src = item.storage_ref;
+      }).catch(function(){});
+    })(imgs[i]);
+  }
+}
+
+/* 任务详情弹窗 */
+function taskDetailModal(t){
+  var fields = [
+    ['任务ID','<span class="m">'+(t.id||'-')+'</span>'],
+    ['SKU',t.sku||'-'],
+    ['模块',t.module||'-'],
+    ['层级',t.layer||'-'],
+    ['状态',t.status||'-'],
+    ['请求模型',t.requested_model||'-'],
+    ['实际模型',t.effective_model||'-'],
+    ['重试次数',t.retry_count!=null?t.retry_count:'-'],
+    ['成本(USD)',t.cost_estimate_usd!=null?t.cost_estimate_usd:'-'],
+    ['耗时(ms)',t.duration_ms!=null?t.duration_ms:'-'],
+    ['错误信息',t.error_message||'无'],
+    ['创建时间',String(t.created_at||'-').slice(0,19)]
+  ];
+  var rows = fields.map(function(f){ return '<tr><td style="padding:6px 8px;color:#888;white-space:nowrap">'+f[0]+'</td><td style="padding:6px 8px;word-break:break-all">'+f[1]+'</td></tr>'; }).join('');
+  var html = '<div id="task-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999">'+
+    '<div style="background:#fff;border-radius:12px;padding:20px;max-width:560px;width:92%;max-height:80vh;overflow:auto">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'+
+    '<b>任务详情</b><button onclick="document.getElementById(\'task-modal\').remove()" style="border:none;background:none;font-size:18px;cursor:pointer">✕</button></div>'+
+    '<table style="width:100%;border-collapse:collapse">'+rows+'</table></div></div>';
+  var old = document.getElementById('task-modal');
+  if (old) old.remove();
+  var div = document.createElement('div');
+  div.innerHTML = html;
+  document.body.appendChild(div.firstChild);
 }
 
 /* ─── 色板小色块（DNA详情 color_system 可视化）─── */
@@ -415,6 +464,7 @@ async function render(){
   document.getElementById('page').innerHTML = head + body;
   renderSpec(def, nv);
   window.scrollTo(0, 0);
+  lazyLoadThumbs();
 }
 
 function updateAvatar(){
