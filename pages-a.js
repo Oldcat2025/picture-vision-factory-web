@@ -199,7 +199,11 @@ page('pid-list', {
     var toneMap = {'APPROVED':'ok','ANALYZING':'run','PARTIAL':'warn','REJECT':'err','STALE':'warn'};
     var rows = (r.data||[]).map(function(item){
       var id = item.identity || {};
+      var tid = item.thumbnail_asset_id || '';
       return [
+        tid
+          ? '<img class="lazy-img" data-asset-id="'+tid+'" src="" style="width:40px;height:40px;object-fit:cover;border-radius:6px;display:block" alt="">'
+          : '<span class="ghost">-</span>',
         '<span class="m">'+id.sku+'</span>',
         id.market || '-',
         chip(id.dna_status || '-', toneMap[id.dna_status] || 'neutral'),
@@ -213,8 +217,8 @@ page('pid-list', {
       [inp('搜索 SKU / 品类...'), sel('市场',['US','GB','DE','FR','JP']), sel('DNA状态',['APPROVED','ANALYZING','PARTIAL'])],
       [btn('批量刷新DNA','btn--ghost'), btn('导出CSV','btn--ghost')]
     ) + table(
-      ['SKU','市场','DNA状态','品类轨道','IA12覆盖','关联资产','最后更新'],
-      rows.length ? rows : [['<span class="ghost">暂无产品数据，先跑一次数据准备流程</span>','','','','','','']]
+      ['缩略图','SKU','市场','DNA状态','品类轨道','IA12覆盖','关联资产','最后更新'],
+      rows.length ? rows : [['<span class="ghost">暂无产品数据，先跑一次数据准备流程</span>','','','','','','','']]
     );
   }
 });
