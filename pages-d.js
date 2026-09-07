@@ -60,7 +60,7 @@ page('cfg-theme', {
     var rows = r.data || [];
     return toolbar(
       [inp('搜索主题...'), sel('季节锚点',['全部','春季','夏季','秋季','冬季','全年'])],
-      [btn('新增主题包',null,"window._cfgCreate('theme')"), btn('批量导入','btn--ghost',"window._todo('批量导入需上传文件，待接入')")]
+      [btn('新增主题包',null,"window._cfgCreate('theme')"), btn('批量导入','btn--ghost',"window._csvImport('theme')")]
     ) +
     cfgTable(rows, '暂无主题配置') +
     callout('','主题包约束',
@@ -85,7 +85,7 @@ page('cfg-brand', {
     var rows = r.data || [];
     return toolbar(
       [inp('搜索品牌名...'), sel('品类范围',['全部','HOME_DAILY','GIFT_SEASONAL','BEAUTY_PERSONAL_CARE','其他'])],
-      [btn('新增黑名单品牌',null,"window._cfgCreate('blacklist')"), btn('批量导入CSV','btn--ghost',"window._todo('批量导入需上传文件，待接入')")]
+      [btn('新增黑名单品牌',null,"window._cfgCreate('blacklist')"), btn('批量导入CSV','btn--ghost',"window._csvImport('blacklist')")]
     ) +
     cfgTable(rows, '暂无黑名单品牌') +
     callout('','黑名单匹配逻辑',
@@ -110,7 +110,7 @@ page('cfg-market-lang', {
     var rows = r.data || [];
     return toolbar(
       [inp('搜索市场代码...')],
-      [btn('新增市场',null,"window._cfgCreate('marketlang')"), btn('批量导入','btn--ghost',"window._todo('批量导入需上传文件，待接入')")]
+      [btn('新增市场',null,"window._cfgCreate('marketlang')"), btn('批量导入','btn--ghost',"window._csvImport('marketlang')")]
     ) +
     cfgTable(rows, '暂无市场映射') +
     callout('','多市场语言策略',

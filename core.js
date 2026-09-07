@@ -276,7 +276,10 @@ function gallery(items){
         '<div class="gcard__l2">'+a.module+' · '+a.type+'</div>'+
         '<div class="gcard__l3"><span>'+a.time+'</span>'+reuse+'</div>'+
       '</div>'+
-      '<button class="gcard__quote">引用到当前任务</button>'+
+      '<div class="gcard__actions">'+
+        '<button class="gcard__quote" onclick="event.stopPropagation();window._assetQuote(\''+a.assetId+'\')">引用</button>'+
+        '<button class="gcard__quote'+(a.reusable?' on':'')+'" onclick="event.stopPropagation();window._assetToggleReuse(\''+a.assetId+'\','+(!a.reusable)+')">'+(a.reusable?'取消复用':'标记可复用')+'</button>'+
+      '</div>'+
     '</div>';
   }).join('')+'</div>';
 }
@@ -434,6 +437,12 @@ window._cfgSubmit = async function(tableKey){
 window._assetQuote = function(id){
   try { if (navigator.clipboard) navigator.clipboard.writeText(id); } catch(e){}
   alert('已复制资产ID：' + id + '\n可在生成任务页引用此资产。');
+};
+
+window._assetToggleReuse = async function(id, flag){
+  var res = await L4.fetch('assets.update', {asset_id: id, reusable_flag: flag});
+  if (res.success) { location.reload(); }
+  else alert('操作失败：' + (res.error || '未知错误'));
 };
 
 /* ─── 上线跟踪：登记新上架 ─── */
@@ -608,6 +617,63 @@ window._backtestCreate = function(){
     var res = await L4.fetch('listing.upsert', {table:'backtest', row: row});
     if (res.success) { var m=document.getElementById('fm-modal'); if(m)m.remove(); alert('已记录优化建议'); location.reload(); }
     else alert('保存失败：'+(res.error||'未知错误'));
+  });
+};
+
+/* ─── 批量导入 CSV + 强制刷新DNA/画像 ─── */
+window._csvImport = function(tableKey){
+  var def = window._CFG_DEFS[tableKey];
+  if (!def) return;
+  var cols = def.fields.map(function(f){ return f[0]; }).join(', ');
+  var html = '<div id="csv-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999">'+
+    '<div style="background:#fff;border-radius:12px;padding:20px;width:440px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><b>批量导入 '+def.title+'</b><button onclick="document.getElementById(\'csv-modal\').remove()" style="border:none;background:none;font-size:18px;cursor:pointer">✕</button></div>'+
+    '<p style="font-size:12.5px;color:var(--t-2);margin-bottom:10px">CSV 表头需包含字段：<code>'+cols+'</code></p>'+
+    '<input type="file" id="csv-file" accept=".csv" class="inp" style="width:100%;margin-bottom:12px">'+
+    '<button class="btn" onclick="window._csvSubmit(\''+tableKey+'\')" style="width:100%">开始导入</button>'+
+    '</div></div>';
+  var old = document.getElementById('csv-modal');
+  if (old) old.remove();
+  var d = document.createElement('div');
+  d.innerHTML = html;
+  document.body.appendChild(d.firstChild);
+};
+
+window._csvSubmit = async function(tableKey){
+  var file = document.getElementById('csv-file').files[0];
+  if (!file) { alert('请选择 CSV 文件'); return; }
+  var text = await file.text();
+  var lines = text.split(/\r?\n/).filter(function(l){ return l.trim(); });
+  if (lines.length < 2) { alert('CSV 需包含表头 + 至少 1 行数据'); return; }
+  var header = lines[0].split(',').map(function(h){ return h.trim(); });
+  var def = window._CFG_DEFS[tableKey];
+  var fieldKeys = def.fields.map(function(f){ return f[0]; });
+  var ok = 0, fail = 0;
+  for (var i = 1; i < lines.length; i++) {
+    var cells = lines[i].split(',').map(function(c){ return c.trim(); });
+    var row = {};
+    header.forEach(function(h, idx){ if (fieldKeys.indexOf(h) >= 0 && cells[idx]) row[h] = cells[idx]; });
+    if (tableKey === 'marketlang') { if (!row.market_code) { fail++; continue; } }
+    else if (tableKey === 'physical') { if (!row.object_name) { fail++; continue; } }
+    else row.id = genId();
+    var res = await L4.fetch('config.upsert', {table: tableKey, row: row});
+    if (res.success) ok++; else fail++;
+  }
+  var m = document.getElementById('csv-modal'); if (m) m.remove();
+  alert('导入完成：成功 ' + ok + ' 条，失败 ' + fail + ' 条');
+  location.reload();
+};
+
+window._dnaRefresh = function(title, ph){
+  window._formModal(title || '强制刷新', [
+    {key:'sku', label:'SKU', ph:'输入 SKU'},
+    {key:'img', label:'白底图 URL', ph:'https://... 白底图链接（必填，用于重新视觉识别）'}
+  ], async function(v){
+    if (!v.sku) { alert('SKU 必填'); return; }
+    if (!v.img) { alert('白底图 URL 必填（系统当前未持久化白底图，需重新提供）'); return; }
+    var res = await L4.fetch('product.trigger', {sku: v.sku, market: 'US', main_image_url: v.img});
+    if (res.success) { var m=document.getElementById('fm-modal'); if(m)m.remove(); alert('已触发分析，约 2 分钟完成（L0 视觉识别 + L1 COSMO）'); location.reload(); }
+    else alert('触发失败：' + (res.error || '未知错误'));
   });
 };
 

@@ -40,7 +40,7 @@ page('asset-gallery', {
         sel('市场',['全部','US','GB','DE','FR','JP']),
         sel('通道',['全部','桌面版','手机版','shop_square','feed_vertical'])
       ],
-      [btn('批量导出','btn--ghost',"window._exportCsv()"), btn('标记为可复用','btn--ghost',"window._todo('标记可复用需选择资产后处理，待接入')")]
+      [btn('批量导出','btn--ghost',"window._exportCsv()"), btn('标记为可复用','btn--ghost',"alert('请在资产卡片上点击「标记可复用」按钮切换')")]
     ) +
     (items.length ? gallery(items) : ghost('暂无生成资产')) +
     '<p style="text-align:center;margin-top:16px;font-size:12.5px;color:var(--t-3)">共 '+
