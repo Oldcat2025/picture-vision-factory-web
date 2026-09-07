@@ -37,7 +37,7 @@ page('cfg-ia6', {
     var rows = r.data || [];
     return toolbar(
       [inp('搜索地区/体型...'), sel('地区筛选',['全部','欧美','亚洲','非洲','拉美','中东'])],
-      [btn('新增人设配置'), btn('导出配置表','btn--ghost')]
+      [btn('新增人设配置',null,"window._cfgCreate('persona')"), btn('导出配置表','btn--ghost',"window._exportCsv()")]
     ) +
     cfgTable(rows, '暂无配置数据') +
     callout('','覆盖率统计','当前已配置 <b>'+rows.length+'组人设</b>。未覆盖组合会降级到"不限"配置。');
@@ -60,7 +60,7 @@ page('cfg-theme', {
     var rows = r.data || [];
     return toolbar(
       [inp('搜索主题...'), sel('季节锚点',['全部','春季','夏季','秋季','冬季','全年'])],
-      [btn('新增主题包'), btn('批量导入','btn--ghost')]
+      [btn('新增主题包',null,"window._cfgCreate('theme')"), btn('批量导入','btn--ghost',"window._todo('批量导入需上传文件，待接入')")]
     ) +
     cfgTable(rows, '暂无主题配置') +
     callout('','主题包约束',
@@ -85,7 +85,7 @@ page('cfg-brand', {
     var rows = r.data || [];
     return toolbar(
       [inp('搜索品牌名...'), sel('品类范围',['全部','HOME_DAILY','GIFT_SEASONAL','BEAUTY_PERSONAL_CARE','其他'])],
-      [btn('新增黑名单品牌'), btn('批量导入CSV','btn--ghost')]
+      [btn('新增黑名单品牌',null,"window._cfgCreate('blacklist')"), btn('批量导入CSV','btn--ghost',"window._todo('批量导入需上传文件，待接入')")]
     ) +
     cfgTable(rows, '暂无黑名单品牌') +
     callout('','黑名单匹配逻辑',
@@ -110,7 +110,7 @@ page('cfg-market-lang', {
     var rows = r.data || [];
     return toolbar(
       [inp('搜索市场代码...')],
-      [btn('新增市场'), btn('批量导入','btn--ghost')]
+      [btn('新增市场',null,"window._cfgCreate('marketlang')"), btn('批量导入','btn--ghost',"window._todo('批量导入需上传文件，待接入')")]
     ) +
     cfgTable(rows, '暂无市场映射') +
     callout('','多市场语言策略',
@@ -153,7 +153,7 @@ page('cfg-sensitivity', {
     ) +
     toolbar(
       [sel('品类标签',['全部','INTIMATE_APPAREL','ADULT_PRODUCT','MEDICAL','其他'])],
-      [btn('新增敏感规则'), btn('测试规则匹配','btn--ghost')]
+      [btn('新增敏感规则',null,"window._cfgCreate('sensitivity')"), btn('测试规则匹配','btn--ghost',"window._todo('规则匹配测试待接入')")]
     ) +
     table(
       ['触发词','品类标签','强制模型','原因','状态'],
@@ -182,6 +182,7 @@ page('cfg-physical', {
     return callout('','参照物用途',
       '模块B/E/F在生成Listing图/详情图时，会在prompt中嵌入参照物尺寸提示（如"smartphone 147×71mm for scale"），帮助AI理解产品真实大小。参照物选择参考项目07验证过的4个常见物体。'
     ) +
+    toolbar([], [btn('新增参照物',null,"window._cfgCreate('physical')")]) +
     cfgTable(rows, '暂无参照物配置') +
     callout('','验证来源',
       '参照物尺寸来自项目07实测验证：智能手机采用iPhone 13实际尺寸、成人手掌/头部采用人体工学平均值、信用卡采用ISO 7810标准。适用图片类型字段控制哪些模块可以引用该参照物。'
@@ -381,7 +382,7 @@ page('adm-audit', {
         sel('操作类型',['全部','配置修改','资产引用','DNA强制刷新','凭证变更','用户登录','权限变更']),
         sel('操作人',['全部','admin','content_mgr','ops_user'])
       ],
-      [btn('导出CSV','btn--ghost')]
+      [btn('导出CSV','btn--ghost',"window._exportCsv()")]
     ) +
     table(
       ['时间','操作人','操作类型','操作对象','详情','IP地址'],
@@ -518,7 +519,7 @@ page('sys-param', {
     });
     return toolbar(
       [inp('搜索版本标签...'), sel('状态',['全部','启用','停用'])],
-      [btn('新增参数版本'), btn('导出','btn--ghost')]
+      [btn('新增参数版本',null,"window._todo('新增参数版本待接入')"), btn('导出','btn--ghost',"window._exportCsv()")]
     ) +
     table(
       ['版本标签','默认质量','默认比例','水印配置','状态','创建时间'],
@@ -544,7 +545,7 @@ page('track-publish', {
     if (!r.success) return callout('warn', '数据加载失败', r.error || '未知错误');
     return toolbar(
       [inp('搜索SKU...'), sel('渠道',['全部'])],
-      [btn('登记新上架'), btn('导出','btn--ghost')]
+      [btn('登记新上架',null,"window._publishCreate()"), btn('导出','btn--ghost',"window._exportCsv()")]
     ) +
     cfgTable(r.data || [], '暂无上架登记记录');
   }
@@ -565,7 +566,7 @@ page('track-perf', {
     if (!r.success) return callout('warn', '数据加载失败', r.error || '未知错误');
     return toolbar(
       [inp('搜索SKU...'), sel('周次',['全部'])],
-      [btn('导出周报','btn--ghost')]
+      [btn('导出周报','btn--ghost',"window._exportCsv()")]
     ) +
     cfgTable(r.data || [], '暂无表现快照数据');
   }
@@ -586,7 +587,7 @@ page('track-ab', {
     if (!r.success) return callout('warn', '数据加载失败', r.error || '未知错误');
     return toolbar(
       [inp('搜索测试名...'), sel('状态',['全部','进行中','已结束'])],
-      [btn('新建AB测试')]
+      [btn('新建AB测试',null,"window._todo('新建AB测试待接入')")]
     ) +
     cfgTable(r.data || [], '暂无AB测试记录');
   }
@@ -607,7 +608,7 @@ page('track-backtest', {
     if (!r.success) return callout('warn', '数据加载失败', r.error || '未知错误');
     return toolbar(
       [inp('搜索回测名...'), sel('状态',['全部'])],
-      [btn('发起回测')]
+      [btn('发起回测',null,"window._todo('发起回测待接入')")]
     ) +
     cfgTable(r.data || [], '暂无回测记录');
   }

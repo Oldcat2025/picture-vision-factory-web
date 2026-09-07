@@ -135,7 +135,7 @@ function sel(label, opts){
     (opts||[]).map(function(o){return '<option>'+o+'</option>';}).join('')+'</select>';
 }
 function inp(ph){ return '<input class="inp" placeholder="'+ph+'">'; }
-function btn(t, cls){ return '<button class="btn '+(cls||'btn--ghost')+'">'+t+'</button>'; }
+function btn(t, cls, onclick){ var oc = onclick ? ' onclick="'+onclick+'"' : ''; return '<button class="btn '+(cls||'btn--ghost')+'"'+oc+'>'+t+'</button>'; }
 
 function kv(pairs){
   return '<dl class="kv">'+pairs.map(function(p){
@@ -333,6 +333,178 @@ function taskDetailModal(t){
   div.innerHTML = html;
   document.body.appendChild(div.firstChild);
 }
+
+/* ─── 配置中心通用新增弹窗 ─── */
+window._CFG_DEFS = {
+  persona: { title:'新增人设配置', fields:[
+    ['region','地区','欧美 / 亚洲 / 非洲 / 拉美 / 中东 / 不限'],
+    ['body_type','体型','Slim / Athletic / Curvy / Plus / Petite / 不限'],
+    ['age_band','年龄段','18-25 / 25-35 / 35-45 / 45+ / 不限'],
+    ['height_ratio','头身比','如 1:9'],
+    ['bmi_range','BMI范围','如 19-23'],
+    ['notes','备注','']]},
+  theme: { title:'新增主题包', fields:[
+    ['theme_code','主题代码','如 T1_COASTAL'],
+    ['theme_name','主题名',''],
+    ['season_anchor','季节锚点','春季 / 夏季 / 秋季 / 冬季 / 全年'],
+    ['primary_color_hex','主色 hex','如 #44564E'],
+    ['secondary_color_hex','辅色 hex',''],
+    ['accent_color_hex','强调色 hex',''],
+    ['big_title_hook','Banner 主标题',''],
+    ['emotion_anchor','情绪基调','']]},
+  blacklist: { title:'新增黑名单品牌', fields:[
+    ['brand_name','品牌名',''],
+    ['category_scope','适用品类','ALL / HOME_DAILY / GIFT_SEASONAL / BEAUTY_PERSONAL_CARE'],
+    ['note','说明','']]},
+  marketlang: { title:'新增市场', fields:[
+    ['market_code','市场代码','如 DE'],
+    ['language','语言','如 German'],
+    ['currency','货币','如 EUR'],
+    ['overlay_language_default','水印默认语言','如 German']]},
+  sensitivity: { title:'新增敏感规则', fields:[
+    ['trigger_keyword','触发词','如 bra'],
+    ['category_tag','品类标签','如 INTIMATE_APPAREL'],
+    ['forced_model','强制模型','如 gemini-3-pro-image-preview'],
+    ['reason','原因',''],
+    ['active','激活(true/false)','true']]},
+  physical: { title:'新增参照物', fields:[
+    ['object_name','参照物名','如 smartphone'],
+    ['dimensions','尺寸','如 147×71×8mm'],
+    ['applicable_image_types','适用图片类型(逗号分隔)','comparison,lifestyle,size_chart']]}
+};
+
+window._cfgCreate = function(tableKey){
+  var def = window._CFG_DEFS[tableKey];
+  if (!def) return;
+  var inputs = def.fields.map(function(f){
+    return '<div style="margin-bottom:10px"><label style="display:block;font-size:12.5px;color:var(--t-2);margin-bottom:4px">'+f[1]+'</label>'+
+      '<input class="inp" id="cfg-f-'+f[0]+'" placeholder="'+f[2]+'" style="width:100%;box-sizing:border-box"></div>';
+  }).join('');
+  var html = '<div id="cfg-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999">'+
+    '<div style="background:#fff;border-radius:12px;padding:20px;width:440px;max-height:85vh;overflow:auto">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">'+
+    '<b style="font-size:15px">'+def.title+'</b>'+
+    '<button onclick="document.getElementById(\'cfg-modal\').remove()" style="border:none;background:none;font-size:18px;cursor:pointer">✕</button></div>'+
+    inputs+
+    '<button class="btn" onclick="window._cfgSubmit(\''+tableKey+'\')" style="width:100%">保存</button>'+
+    '</div></div>';
+  var old = document.getElementById('cfg-modal');
+  if (old) old.remove();
+  var d = document.createElement('div');
+  d.innerHTML = html;
+  document.body.appendChild(d.firstChild);
+};
+
+window._cfgSubmit = async function(tableKey){
+  var def = window._CFG_DEFS[tableKey];
+  if (!def) return;
+  var row = {};
+  def.fields.forEach(function(f){
+    var el = document.getElementById('cfg-f-'+f[0]);
+    var v = el ? el.value.trim() : '';
+    if (v) row[f[0]] = v;
+  });
+  if (tableKey === 'marketlang') {
+    if (!row.market_code) { alert('市场代码必填'); return; }
+  } else if (tableKey === 'physical') {
+    if (!row.object_name) { alert('参照物名必填'); return; }
+  } else {
+    row.id = (window.crypto && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c){ var r=Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16); });
+  }
+  if (tableKey === 'sensitivity') {
+    var ae = document.getElementById('cfg-f-active');
+    row.active = !ae || ae.value.trim().toLowerCase() === 'true';
+  }
+  if (tableKey === 'physical') {
+    var at = row.applicable_image_types;
+    if (at && typeof at === 'string') row.applicable_image_types = at.split(',').map(function(s){return s.trim();});
+  }
+  var res = await L4.fetch('config.upsert', {table: tableKey, row: row});
+  if (res.success) {
+    var m = document.getElementById('cfg-modal'); if (m) m.remove();
+    alert('保存成功');
+    location.reload();
+  } else {
+    alert('保存失败：' + (res.error || '未知错误'));
+  }
+};
+
+window._assetQuote = function(id){
+  try { if (navigator.clipboard) navigator.clipboard.writeText(id); } catch(e){}
+  alert('已复制资产ID：' + id + '\n可在生成任务页引用此资产。');
+};
+
+/* ─── 上线跟踪：登记新上架 ─── */
+window._publishCreate = async function(){
+  var pr = await L4.fetch('product.list', {limit:200});
+  var products = (pr.data||[]).map(function(it){ return it.identity||{}; }).filter(function(p){ return p.id && p.sku; });
+  if (!products.length) { alert('暂无产品，请先在产品身份库录入'); return; }
+  var opts = products.map(function(p){ return '<option value="'+p.id+'">'+p.sku+(p.market?' ('+p.market+')':'')+'</option>'; }).join('');
+  var html = '<div id="pub-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999">'+
+    '<div style="background:#fff;border-radius:12px;padding:20px;width:440px;max-height:85vh;overflow:auto">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><b style="font-size:15px">登记新上架</b><button onclick="document.getElementById(\'pub-modal\').remove()" style="border:none;background:none;font-size:18px;cursor:pointer">✕</button></div>'+
+    '<div style="margin-bottom:10px"><label style="display:block;font-size:12.5px;color:var(--t-2);margin-bottom:4px">产品</label><select class="inp" id="pub-pid" style="width:100%;box-sizing:border-box">'+opts+'</select></div>'+
+    '<div style="margin-bottom:10px"><label style="display:block;font-size:12.5px;color:var(--t-2);margin-bottom:4px">平台</label><select class="inp" id="pub-platform" style="width:100%;box-sizing:border-box"><option>AMAZON</option><option>TIKTOK_SHOP</option><option>TEMU</option></select></div>'+
+    '<div style="margin-bottom:10px"><label style="display:block;font-size:12.5px;color:var(--t-2);margin-bottom:4px">Listing 链接</label><input class="inp" id="pub-url" placeholder="https://..." style="width:100%;box-sizing:border-box"></div>'+
+    '<div style="margin-bottom:10px"><label style="display:block;font-size:12.5px;color:var(--t-2);margin-bottom:4px">登记人</label><input class="inp" id="pub-by" placeholder="如 老猫" style="width:100%;box-sizing:border-box"></div>'+
+    '<div style="margin-bottom:10px"><label style="display:block;font-size:12.5px;color:var(--t-2);margin-bottom:4px">备注</label><input class="inp" id="pub-note" style="width:100%;box-sizing:border-box"></div>'+
+    '<button class="btn" onclick="window._publishSubmit()" style="width:100%">保存</button>'+
+    '</div></div>';
+  var old = document.getElementById('pub-modal');
+  if (old) old.remove();
+  var d = document.createElement('div');
+  d.innerHTML = html;
+  document.body.appendChild(d.firstChild);
+};
+
+window._publishSubmit = async function(){
+  var pid = document.getElementById('pub-pid').value;
+  var platform = document.getElementById('pub-platform').value;
+  var url = document.getElementById('pub-url').value.trim();
+  var by = document.getElementById('pub-by').value.trim();
+  var note = document.getElementById('pub-note').value.trim();
+  if (!by) { alert('登记人必填'); return; }
+  var row = {
+    id: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c){ var r=Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16); }),
+    product_identity_id: pid,
+    platform: platform,
+    published_by: by,
+    listing_url: url,
+    notes: note,
+    published_at: new Date().toISOString(),
+    asset_ids: []
+  };
+  var res = await L4.fetch('listing.create', {row: row});
+  if (res.success) {
+    var m = document.getElementById('pub-modal'); if (m) m.remove();
+    alert('登记成功'); location.reload();
+  } else {
+    alert('登记失败：' + (res.error || '未知错误'));
+  }
+};
+
+/* ─── 通用占位提示 + CSV 导出 ─── */
+window._todo = function(msg){ alert(msg || '该功能为原型占位，正式版将接入'); };
+
+window._exportCsv = function(){
+  var tbl = document.querySelector('#page table');
+  if (!tbl) { alert('当前页面无表格数据'); return; }
+  var rows = [];
+  tbl.querySelectorAll('tr').forEach(function(tr){
+    var cells = [];
+    tr.querySelectorAll('th,td').forEach(function(td){ cells.push('"'+td.textContent.trim().replace(/"/g,'""')+'"'); });
+    if (cells.length) rows.push(cells.join(','));
+  });
+  if (!rows.length) { alert('无数据可导出'); return; }
+  var csv = '\ufeff' + rows.join('\n');
+  var blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'export-' + Date.now() + '.csv';
+  a.click();
+};
 
 /* ─── 色板小色块（DNA详情 color_system 可视化）─── */
 function pal(colors){

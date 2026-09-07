@@ -40,7 +40,7 @@ page('asset-gallery', {
         sel('市场',['全部','US','GB','DE','FR','JP']),
         sel('通道',['全部','桌面版','手机版','shop_square','feed_vertical'])
       ],
-      [btn('批量导出','btn--ghost'), btn('标记为可复用','btn--ghost')]
+      [btn('批量导出','btn--ghost',"window._exportCsv()"), btn('标记为可复用','btn--ghost',"window._todo('标记可复用需选择资产后处理，待接入')")]
     ) +
     (items.length ? gallery(items) : ghost('暂无生成资产')) +
     '<p style="text-align:center;margin-top:16px;font-size:12.5px;color:var(--t-3)">共 '+
@@ -97,9 +97,9 @@ page('asset-detail', {
       ['storage_ref',a.storage_ref||'-']
     ])) +
     '<div class="btnrow">'+
-      btn('引用到当前任务')+
-      btn('下载原图','btn--ghost')+
-      btn('查看生成任务详情','btn--ghost')+
+      btn('引用到当前任务',null,"window._assetQuote('"+(a.id||'')+"')")+
+      btn('下载原图','btn--ghost',"window.open('"+(a.storage_ref||'')+"','_blank')")+
+      btn('查看生成任务详情','btn--ghost',"location.hash='task-pipeline'")+
     '</div>';
   }
 });

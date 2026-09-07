@@ -215,7 +215,7 @@ page('pid-list', {
     });
     return toolbar(
       [inp('搜索 SKU / 品类...'), sel('市场',['US','GB','DE','FR','JP']), sel('DNA状态',['APPROVED','ANALYZING','PARTIAL'])],
-      [btn('批量刷新DNA','btn--ghost'), btn('导出CSV','btn--ghost')]
+      [btn('批量刷新DNA','btn--ghost',"window._todo('批量刷新DNA待接入')"), btn('导出CSV','btn--ghost',"window._exportCsv()")]
     ) + table(
       ['缩略图','SKU','市场','DNA状态','品类轨道','IA12覆盖','关联资产','最后更新'],
       rows.length ? rows : [['<span class="ghost">暂无产品数据，先跑一次数据准备流程</span>','','','','','','','']]
@@ -282,7 +282,7 @@ page('pid-dna', {
         ['QC模型', chip(pd.qc_model || '-', 'neutral')],
         ['最后更新', String(id.dna_analyzed_at || id.updated_at || '-').slice(0,16)]
       ])) +
-      '<div>'+btn('强制刷新DNA（需权限）','btn--ghost')+btn('查看原始JSON','btn--ghost')+'</div>'+
+      '<div>'+btn('强制刷新DNA（需权限）','btn--ghost',"window._todo('强制刷新DNA待接入')")+btn('查看原始JSON','btn--ghost')+'</div>'+
     '</div>' +
     panel('视觉分析（Visual Analysis）',
       '<h4 style="margin-bottom:10px">主视觉元素（Motif Inventory）</h4>'+
@@ -338,7 +338,7 @@ page('pid-cosmo', {
         ['画像模型', cp.model_used || '-'],
         ['生成时间', String(cp.generated_at || '-').slice(0,16)]
       ])) +
-      '<div>'+btn('重新生成画像（需权限）','btn--ghost')+'</div>'+
+      '<div>'+btn('重新生成画像（需权限）','btn--ghost',"window._todo('重新生成画像待接入')")+'</div>'+
     '</div>' +
     panel('人群特征（Demographics）', kv([
       ['年龄段', dem.age_range || '-'],
