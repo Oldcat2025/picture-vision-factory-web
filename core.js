@@ -281,20 +281,27 @@ function gallery(items){
   }).join('')+'</div>';
 }
 
-/* 懒加载缩略图：遍历 .lazy-img，按 asset id 异步取完整图 */
-function lazyLoadThumbs(){
+/* 懒加载缩略图：分批并发（4个一批）按 asset id 取完整图，避免 24 个并发 26MB 传输超时 */
+async function lazyLoadThumbs(){
   var imgs = document.querySelectorAll('.lazy-img');
+  var batch = [];
   for (var i = 0; i < imgs.length; i++) {
-    (function(img){
-      var id = img.getAttribute('data-asset-id');
-      if (!id || img.dataset.loaded) return;
-      img.dataset.loaded = '1';
-      L4.fetch('assets.get', {asset_id: id}).then(function(r){
+    var img = imgs[i];
+    var id = img.getAttribute('data-asset-id');
+    if (!id || img.dataset.loaded) continue;
+    img.dataset.loaded = '1';
+    batch.push({img: img, id: id});
+  }
+  var BATCH = 4;
+  for (var b = 0; b < batch.length; b += BATCH) {
+    var chunk = batch.slice(b, b + BATCH);
+    await Promise.all(chunk.map(function(item){
+      return L4.fetch('assets.get', {asset_id: item.id}).then(function(r){
         var d = r.data;
-        var item = Array.isArray(d) ? d[0] : d;
-        if (item && item.storage_ref) img.src = item.storage_ref;
+        var it = Array.isArray(d) ? d[0] : d;
+        if (it && it.storage_ref) item.img.src = it.storage_ref;
       }).catch(function(){});
-    })(imgs[i]);
+    }));
   }
 }
 
