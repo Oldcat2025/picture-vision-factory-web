@@ -686,15 +686,11 @@ window._submitImage = function(module, title){
   reader.onload = async function(){
     var dataUrl = String(reader.result || '');
     try {
-      var upRes = await fetch('https://catoss.zeabur.app/upload', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer 467e8917de65314abe306dc61e4238fdd6957bbc0041525d'},
-        body: JSON.stringify({base64: dataUrl, dir: 'generated-assets', filename: module + '_' + Date.now() + '.jpg'})
-      });
-      var up = await upRes.json();
-      if (!up.ok || !up.url) { alert('图片上传失败：' + (up.error || '未知错误')); return; }
+      var upRes = await L4.fetch('assets.upload', {base64: dataUrl, dir: 'generated-assets', filename: module + '_' + Date.now() + '.jpg'});
+      var upUrl = upRes && upRes.data && upRes.data[0] && upRes.data[0].url;
+      if (!upUrl) { alert('图片上传失败：' + (upRes && upRes.error || '未知错误')); return; }
       var payload = {
-        sku: 'IMAGE-' + Date.now(), module: module, mode: 'scene', image_url: up.url,
+        sku: 'IMAGE-' + Date.now(), module: module, mode: 'scene', image_url: upUrl,
         scene_descs: [{sceneSetting: 'product on clean white background, studio lighting, professional product photography'}],
         aspect_ratio: '1:1', quality: '1K'
       };
