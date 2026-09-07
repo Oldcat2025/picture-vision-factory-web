@@ -199,10 +199,10 @@ page('pid-list', {
     var toneMap = {'APPROVED':'ok','ANALYZING':'run','PARTIAL':'warn','REJECT':'err','STALE':'warn'};
     var rows = (r.data||[]).map(function(item){
       var id = item.identity || {};
-      var tid = item.thumbnail_asset_id || '';
+      var tid = item.thumbnail_ref || '';
       return [
         tid
-          ? '<img class="lazy-img" data-asset-id="'+tid+'" src="" style="width:40px;height:40px;object-fit:cover;border-radius:6px;display:block" alt="">'
+          ? '<img src="'+tid+'?x-oss-process=image/resize,w_120" style="width:40px;height:40px;object-fit:cover;border-radius:6px;display:block" alt="">'
           : '<span class="ghost">-</span>',
         '<span class="m">'+id.sku+'</span>',
         id.market || '-',

@@ -28,7 +28,8 @@ page('asset-gallery', {
         reusable: !!a.reusable_flag,
         channel: a.channel || '',
         go: '#asset-detail',
-        assetId: a.id || ''
+        assetId: a.id || '',
+        thumb: a.storage_ref ? (a.storage_ref + '?x-oss-process=image/resize,w_400') : ''
       };
     });
     return toolbar(
