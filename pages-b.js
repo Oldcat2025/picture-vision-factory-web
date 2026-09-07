@@ -397,11 +397,11 @@ page('task-pipeline', {
     panel('产出资产', table(
       ['资产ID','类型','模型','耗时','成本','操作'],
       [
-        ['<span class="m">asset-3f8a12</span>','场景图','gemini-2.5-flash','12.8s','$0.17',btn('查看','btn--ghost')],
-        ['<span class="m">asset-4b9c23</span>','场景图','gemini-2.5-flash','13.2s','$0.17',btn('查看','btn--ghost')],
-        ['<span class="m">asset-5d1e34</span>','模特图','gemini-2.5-flash','14.1s','$0.17',btn('查看','btn--ghost')],
-        ['<span class="m">asset-6f2g45</span>','模特图','gemini-2.5-flash','13.5s','$0.17',btn('查看','btn--ghost')],
-        ['<span class="m">asset-7h3i56</span>','场景图','gemini-2.5-flash','14.6s','$0.17',btn('查看','btn--ghost')]
+        ['<span class="m">asset-3f8a12</span>','场景图','gemini-2.5-flash','12.8s','$0.17',btn('查看','btn--ghost',"location.hash='asset-detail'")],
+        ['<span class="m">asset-4b9c23</span>','场景图','gemini-2.5-flash','13.2s','$0.17',btn('查看','btn--ghost',"location.hash='asset-detail'")],
+        ['<span class="m">asset-5d1e34</span>','模特图','gemini-2.5-flash','14.1s','$0.17',btn('查看','btn--ghost',"location.hash='asset-detail'")],
+        ['<span class="m">asset-6f2g45</span>','模特图','gemini-2.5-flash','13.5s','$0.17',btn('查看','btn--ghost',"location.hash='asset-detail'")],
+        ['<span class="m">asset-7h3i56</span>','场景图','gemini-2.5-flash','14.6s','$0.17',btn('查看','btn--ghost',"location.hash='asset-detail'")]
       ]
     ));
   }

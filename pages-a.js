@@ -244,6 +244,7 @@ page('pid-dna', {
     var item = (r.data||[])[0] || null;
     var id = item ? (item.identity || {}) : {};
     var pd = item ? item.product_dna : null;
+    window._curDna = pd;
     if (!pd) return callout('', '该 SKU 尚未跑 DNA 分析', '当前产品身份还没有生成 Product DNA 数据，请先在 Layer 0 数据准备流程中触发视觉识别与卖点提取。');
 
     var va = pd.visual_analysis || {};
@@ -282,7 +283,7 @@ page('pid-dna', {
         ['QC模型', chip(pd.qc_model || '-', 'neutral')],
         ['最后更新', String(id.dna_analyzed_at || id.updated_at || '-').slice(0,16)]
       ])) +
-      '<div>'+btn('强制刷新DNA（需权限）','btn--ghost',"window._todo('强制刷新DNA待接入')")+btn('查看原始JSON','btn--ghost')+'</div>'+
+      '<div>'+btn('强制刷新DNA（需权限）','btn--ghost',"window._todo('强制刷新DNA待接入')")+btn('查看原始JSON','btn--ghost',"window._showJson(window._curDna)")+'</div>'+
     '</div>' +
     panel('视觉分析（Visual Analysis）',
       '<h4 style="margin-bottom:10px">主视觉元素（Motif Inventory）</h4>'+

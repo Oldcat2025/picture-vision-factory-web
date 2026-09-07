@@ -488,6 +488,21 @@ window._publishSubmit = async function(){
 /* ─── 通用占位提示 + CSV 导出 ─── */
 window._todo = function(msg){ alert(msg || '该功能为原型占位，正式版将接入'); };
 
+window._showJson = function(obj){
+  var text;
+  try { text = JSON.stringify(obj, null, 2); } catch(e){ text = String(obj); }
+  var html = '<div id="json-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999">'+
+    '<div style="background:#fff;border-radius:12px;padding:20px;width:640px;max-width:92%;max-height:85vh;overflow:auto">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><b>原始 JSON</b><button onclick="document.getElementById(\'json-modal\').remove()" style="border:none;background:none;font-size:18px;cursor:pointer">✕</button></div>'+
+    '<pre style="background:#f5f6f6;padding:12px;border-radius:8px;font-size:12px;overflow:auto;max-height:65vh">'+text.replace(/</g,'&lt;')+'</pre>'+
+    '</div></div>';
+  var old = document.getElementById('json-modal');
+  if (old) old.remove();
+  var d = document.createElement('div');
+  d.innerHTML = html;
+  document.body.appendChild(d.firstChild);
+};
+
 window._exportCsv = function(){
   var tbl = document.querySelector('#page table');
   if (!tbl) { alert('当前页面无表格数据'); return; }
@@ -504,6 +519,96 @@ window._exportCsv = function(){
   a.href = URL.createObjectURL(blob);
   a.download = 'export-' + Date.now() + '.csv';
   a.click();
+};
+
+/* ─── 通用表单弹窗 + 台账/参数/AB/回测 ─── */
+window._formModal = function(title, fields, onSave){
+  var inputs = fields.map(function(f){
+    var ctl = f.options
+      ? '<select class="inp" id="fm-'+f.key+'" style="width:100%;box-sizing:border-box">'+f.options.map(function(o){return '<option value="'+o.v+'">'+o.t+'</option>';}).join('')+'</select>'
+      : '<input class="inp" id="fm-'+f.key+'" placeholder="'+(f.ph||'')+'" style="width:100%;box-sizing:border-box">';
+    return '<div style="margin-bottom:10px"><label style="display:block;font-size:12.5px;color:var(--t-2);margin-bottom:4px">'+f.label+'</label>'+ctl+'</div>';
+  }).join('');
+  var html = '<div id="fm-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999">'+
+    '<div style="background:#fff;border-radius:12px;padding:20px;width:440px;max-height:85vh;overflow:auto">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><b style="font-size:15px">'+title+'</b><button onclick="document.getElementById(\'fm-modal\').remove()" style="border:none;background:none;font-size:18px;cursor:pointer">✕</button></div>'+
+    inputs+
+    '<button class="btn" onclick="window._fmSave()" style="width:100%">保存</button></div></div>';
+  var old = document.getElementById('fm-modal');
+  if (old) old.remove();
+  var d = document.createElement('div');
+  d.innerHTML = html;
+  document.body.appendChild(d.firstChild);
+  window._fmSave = function(){
+    var values = {};
+    fields.forEach(function(f){ var el = document.getElementById('fm-'+f.key); values[f.key] = el ? el.value.trim() : ''; });
+    onSave(values);
+  };
+};
+
+function genId(){ return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return (c==='x'?r:(r&0x3|0x8)).toString(16);}); }
+
+window._testRule = async function(){
+  var r = await L4.fetch('config.list', {table:'sensitivity', limit:100});
+  var rules = (r.data||[]).filter(function(x){ return x.active !== false; });
+  if (!rules.length) { alert('暂无敏感规则'); return; }
+  var word = prompt('输入要测试的文本（测试是否命中敏感词，word-boundary 匹配）：');
+  if (!word) return;
+  var hits = rules.filter(function(rule){
+    var kw = (rule.trigger_keyword||'').trim();
+    if (!kw) return false;
+    try { var re = new RegExp('\\b' + kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\b', 'i'); return re.test(word); }
+    catch(e){ return false; }
+  });
+  if (hits.length) {
+    alert('命中 ' + hits.length + ' 条规则：\n' + hits.map(function(h){ return '• ' + h.trigger_keyword + ' → 强制 ' + h.forced_model; }).join('\n'));
+  } else {
+    alert('「' + word + '」未命中任何敏感规则');
+  }
+};
+
+window._paramCreate = function(){
+  window._formModal('新增参数版本', [
+    {key:'version_tag', label:'版本号', ph:'如 v1.1-2026Q3'},
+    {key:'default_quality', label:'默认画质', options:[{v:'1K',t:'1K'},{v:'2K',t:'2K'}]},
+    {key:'active', label:'立即启用', options:[{v:'true',t:'是'},{v:'false',t:'否'}]}
+  ], async function(v){
+    if (!v.version_tag) { alert('版本号必填'); return; }
+    var row = { id: genId(), version_tag: v.version_tag, default_quality: v.default_quality||'1K', active: v.active==='true', created_at: new Date().toISOString() };
+    var res = await L4.fetch('engine.param.upsert', {row: row});
+    if (res.success) { var m=document.getElementById('fm-modal'); if(m)m.remove(); alert('保存成功'); location.reload(); }
+    else alert('保存失败：'+(res.error||'未知错误'));
+  });
+};
+
+window._abCreate = async function(){
+  var pr = await L4.fetch('product.list', {limit:200});
+  var products = (pr.data||[]).map(function(it){return it.identity||{};}).filter(function(p){return p.id&&p.sku;});
+  if (!products.length) { alert('暂无产品，请先录入'); return; }
+  window._formModal('新建 AB 测试', [
+    {key:'pid', label:'产品', options: products.map(function(p){return {v:p.id,t:p.sku+(p.market?' ('+p.market+')':'')};})},
+    {key:'group', label:'分组标签', ph:'如 A / B'},
+    {key:'theme', label:'主题代码(可选)', ph:'如 T1_COASTAL'}
+  ], async function(v){
+    if (!v.group) { alert('分组标签必填'); return; }
+    var row = { id: genId(), product_identity_id: v.pid, test_group_label: v.group, theme_code: v.theme||null, asset_ids: [], started_at: new Date().toISOString() };
+    var res = await L4.fetch('listing.upsert', {table:'ab_test', row: row});
+    if (res.success) { var m=document.getElementById('fm-modal'); if(m)m.remove(); alert('已登记 AB 测试'); location.reload(); }
+    else alert('保存失败：'+(res.error||'未知错误'));
+  });
+};
+
+window._backtestCreate = function(){
+  window._formModal('发起回测（记录优化建议）', [
+    {key:'scope', label:'适用范围', ph:'如 theme T1_COASTAL / 家居品类'},
+    {key:'text', label:'建议内容', ph:'归纳型建议，如「暖色系主题转化更高」'}
+  ], async function(v){
+    if (!v.scope || !v.text) { alert('适用范围和建议内容必填'); return; }
+    var row = { id: genId(), scope: v.scope, suggestion_text: v.text, generated_at: new Date().toISOString() };
+    var res = await L4.fetch('listing.upsert', {table:'backtest', row: row});
+    if (res.success) { var m=document.getElementById('fm-modal'); if(m)m.remove(); alert('已记录优化建议'); location.reload(); }
+    else alert('保存失败：'+(res.error||'未知错误'));
+  });
 };
 
 /* ─── 色板小色块（DNA详情 color_system 可视化）─── */

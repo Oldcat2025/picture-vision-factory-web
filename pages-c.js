@@ -238,7 +238,7 @@ page('ledger-failure', {
       ['模块', '总调用', '失败次数', '失败率', '失败成本'],
       tr
     ), {note: '仅聚合 status=FAILED 的台账记录；重试 / error_message 明细下钻待接入'}) +
-    '<div class="btnrow">' + btn('批量重试失败任务', 'btn--ghost') + btn('导出错误日志CSV', 'btn--ghost') + '</div>';
+    '<div class="btnrow">' + btn('批量重试失败任务', 'btn--ghost',"window._todo('批量重试待接入')") + btn('导出错误日志CSV', 'btn--ghost',"window._exportCsv()") + '</div>';
   }
 });
 

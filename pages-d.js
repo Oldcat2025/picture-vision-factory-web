@@ -153,7 +153,7 @@ page('cfg-sensitivity', {
     ) +
     toolbar(
       [sel('品类标签',['全部','INTIMATE_APPAREL','ADULT_PRODUCT','MEDICAL','其他'])],
-      [btn('新增敏感规则',null,"window._cfgCreate('sensitivity')"), btn('测试规则匹配','btn--ghost',"window._todo('规则匹配测试待接入')")]
+      [btn('新增敏感规则',null,"window._cfgCreate('sensitivity')"), btn('测试规则匹配','btn--ghost',"window._testRule()")]
     ) +
     table(
       ['触发词','品类标签','强制模型','原因','状态'],
@@ -267,7 +267,7 @@ page('sys-cred', {
     ) +
     toolbar(
       [sel('凭证类型',['全部','API Key','OAuth2','PostgreSQL','MCP Server'])],
-      [btn('跳转n8n凭证页（需权限）','btn--ghost')]
+      [btn('跳转n8n凭证页（需权限）','btn--ghost',"window.open('https://oldcat.zeabur.app/credentials','_blank')")]
     ) +
     table(
       ['用户名','角色','关联实例','状态','最后使用'],
@@ -480,7 +480,7 @@ page('sys-binding', {
     });
     return toolbar(
       [inp('搜索绑定环节...'), sel('状态',['全部','启用','停用'])],
-      [btn('刷新','btn--ghost')]
+      [btn('刷新','btn--ghost',"location.reload()")]
     ) +
     table(
       ['绑定环节','模型名','状态','更新人','更新时间'],
@@ -519,7 +519,7 @@ page('sys-param', {
     });
     return toolbar(
       [inp('搜索版本标签...'), sel('状态',['全部','启用','停用'])],
-      [btn('新增参数版本',null,"window._todo('新增参数版本待接入')"), btn('导出','btn--ghost',"window._exportCsv()")]
+      [btn('新增参数版本',null,"window._paramCreate()"), btn('导出','btn--ghost',"window._exportCsv()")]
     ) +
     table(
       ['版本标签','默认质量','默认比例','水印配置','状态','创建时间'],
@@ -587,7 +587,7 @@ page('track-ab', {
     if (!r.success) return callout('warn', '数据加载失败', r.error || '未知错误');
     return toolbar(
       [inp('搜索测试名...'), sel('状态',['全部','进行中','已结束'])],
-      [btn('新建AB测试',null,"window._todo('新建AB测试待接入')")]
+      [btn('新建AB测试',null,"window._abCreate()")]
     ) +
     cfgTable(r.data || [], '暂无AB测试记录');
   }
@@ -608,7 +608,7 @@ page('track-backtest', {
     if (!r.success) return callout('warn', '数据加载失败', r.error || '未知错误');
     return toolbar(
       [inp('搜索回测名...'), sel('状态',['全部'])],
-      [btn('发起回测',null,"window._todo('发起回测待接入')")]
+      [btn('发起回测',null,"window._backtestCreate()")]
     ) +
     cfgTable(r.data || [], '暂无回测记录');
   }
