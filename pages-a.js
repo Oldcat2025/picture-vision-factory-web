@@ -253,8 +253,8 @@ page('pid-dna', {
     var sp = pd.selling_points || [];
     var rejected = pd.qc_rejected_claims || [];
     var qcTone = (pd.qc_result === 'APPROVE' || pd.qc_result === 'APPROVED') ? 'ok' : (pd.qc_result === 'REJECT' ? 'err' : 'warn');
-    var join = function(arr){ return (arr && arr.length) ? arr.join(' · ') : '-'; };
-    var chips = function(arr){ return (arr && arr.length) ? arr.map(function(x){ return chip(x,'neutral'); }).join(' ') : '-'; };
+    var join = function(arr){ if (typeof arr === 'string') return arr || '-'; return (arr && arr.length) ? arr.join(' · ') : '-'; };
+    var chips = function(arr){ if (typeof arr === 'string') return arr ? chip(arr,'neutral') : '-'; return (arr && arr.length) ? arr.map(function(x){ return chip(x,'neutral'); }).join(' ') : '-'; };
 
     var motifs = (va.motif_inventory||[]).map(function(m){
       return [m.name||'-', m.scale||'-', m.position||'-', (m.count!=null ? m.count : '-')];
@@ -326,7 +326,7 @@ page('pid-cosmo', {
 
     var dem = cp.demographics || {};
     var rt = cp.relation_triples || [];
-    var join = function(arr){ return (arr && arr.length) ? arr.join(' · ') : '-'; };
+    var join = function(arr){ if (typeof arr === 'string') return arr || '-'; return (arr && arr.length) ? arr.join(' · ') : '-'; };
     var triples = rt.map(function(t){
       return [t.subject||'-', t.relation_type||'-', t.object||'-', '<span style="font-size:12px;color:var(--t-3)">'+(t.evidence||'-')+'</span>'];
     });
