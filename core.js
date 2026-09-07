@@ -535,7 +535,7 @@ window._formModal = function(title, fields, onSave){
   var inputs = fields.map(function(f){
     var ctl = f.options
       ? '<select class="inp" id="fm-'+f.key+'" style="width:100%;box-sizing:border-box">'+f.options.map(function(o){return '<option value="'+o.v+'">'+o.t+'</option>';}).join('')+'</select>'
-      : '<input class="inp" id="fm-'+f.key+'" placeholder="'+(f.ph||'')+'" style="width:100%;box-sizing:border-box">';
+      : '<input class="inp" id="fm-'+f.key+'" placeholder="'+(f.ph||'')+'" value="'+(f.value||'')+'" style="width:100%;box-sizing:border-box">';
     return '<div style="margin-bottom:10px"><label style="display:block;font-size:12.5px;color:var(--t-2);margin-bottom:4px">'+f.label+'</label>'+ctl+'</div>';
   }).join('');
   var html = '<div id="fm-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999">'+
@@ -664,10 +664,19 @@ window._csvSubmit = async function(tableKey){
   location.reload();
 };
 
-window._dnaRefresh = function(title, ph){
+window._dnaRefresh = async function(title, ph){
+  var curSku = '', curImg = '';
+  var pid = sessionStorage.getItem('vf_cur_pid');
+  if (pid) {
+    try {
+      var pr = await L4.fetch('product.get', {product_identity_id: pid});
+      var id = pr && pr.data && pr.data[0] && pr.data[0].identity;
+      if (id) { curSku = id.sku || ''; curImg = id.white_bg_url || ''; }
+    } catch(e){}
+  }
   window._formModal(title || '强制刷新', [
-    {key:'sku', label:'SKU', ph:'输入 SKU'},
-    {key:'img', label:'白底图 URL', ph:'https://... 白底图链接（必填，用于重新视觉识别）'}
+    {key:'sku', label:'SKU', ph:'输入 SKU', value: curSku},
+    {key:'img', label:'白底图 URL', ph:'https://... 白底图链接（必填，用于重新视觉识别）', value: curImg}
   ], async function(v){
     if (!v.sku) { alert('SKU 必填'); return; }
     if (!v.img) { alert('白底图 URL 必填（系统当前未持久化白底图，需重新提供）'); return; }
