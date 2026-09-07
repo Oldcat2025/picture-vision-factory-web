@@ -287,7 +287,8 @@ function lazyLoadThumbs(){
   for (var i = 0; i < imgs.length; i++) {
     (function(img){
       var id = img.getAttribute('data-asset-id');
-      if (!id || img.src) return;
+      if (!id || img.dataset.loaded) return;
+      img.dataset.loaded = '1';
       L4.fetch('assets.get', {asset_id: id}).then(function(r){
         var d = r.data;
         var item = Array.isArray(d) ? d[0] : d;

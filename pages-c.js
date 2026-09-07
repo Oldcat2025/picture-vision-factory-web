@@ -59,9 +59,14 @@ page('asset-detail', {
   },
   body: async function(){
     var aid = sessionStorage.getItem('vf_cur_asset') || '';
+    if (!aid) {
+      var lr = await L4.fetch('assets.list', {limit: 1});
+      var first = Array.isArray(lr.data) ? lr.data[0] : null;
+      aid = first ? (first.id || '') : '';
+    }
     var r = aid
       ? await L4.fetch('assets.get', {asset_id: aid})
-      : await L4.fetch('assets.search', {limit: 1});
+      : {success: false, data: null, error: '暂无资产'};
     if (!r.success) return callout('warn', '数据加载失败', r.error || '未知错误');
     var a = Array.isArray(r.data) ? r.data[0] : r.data;
     if (!a) return callout('warn', '暂无资产', '请先生成资产');
