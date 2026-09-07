@@ -204,7 +204,7 @@ page('pid-list', {
         tid
           ? '<img src="'+tid+'?x-oss-process=image/resize,w_120" style="width:40px;height:40px;object-fit:cover;border-radius:6px;display:block" alt="">'
           : '<span class="ghost">-</span>',
-        '<span class="m">'+id.sku+'</span>',
+        '<a href="#pid-dna" onclick="sessionStorage.setItem(\'vf_cur_pid\',\''+id.id+'\')" style="color:var(--gr-500);text-decoration:none">'+id.sku+'</a>',
         id.market || '-',
         chip(id.dna_status || '-', toneMap[id.dna_status] || 'neutral'),
         chip(id.product_category_track || 'GENERIC_PRODUCT', 'neutral'),
@@ -239,7 +239,7 @@ page('pid-dna', {
     '强制刷新会清空缓存重新调用视觉识别（内容管理员/系统管理员权限）'
   ],
   body: async function(){
-    var r = await L4.fetch('product.get', {product_identity_id:'1f3e9008-52ea-4659-a35c-09c25ed3bf2c'});
+    var r = await L4.fetch('product.get', {product_identity_id:(sessionStorage.getItem('vf_cur_pid')||'9ad0a229-7bbe-4a41-899c-3e0c819e3f4d')});
     if (!r.success) return callout('warn', '数据加载失败', r.error || '未知错误');
     var item = (r.data||[])[0] || null;
     var id = item ? (item.identity || {}) : {};
@@ -317,7 +317,7 @@ page('pid-cosmo', {
     limits: ['relation_type不做强枚举断言（04文档暂缓决策）']
   },
   body: async function(){
-    var r = await L4.fetch('product.get', {product_identity_id:'1f3e9008-52ea-4659-a35c-09c25ed3bf2c'});
+    var r = await L4.fetch('product.get', {product_identity_id:(sessionStorage.getItem('vf_cur_pid')||'9ad0a229-7bbe-4a41-899c-3e0c819e3f4d')});
     if (!r.success) return callout('warn', '数据加载失败', r.error || '未知错误');
     var item = (r.data||[])[0] || null;
     var id = item ? (item.identity || {}) : {};
