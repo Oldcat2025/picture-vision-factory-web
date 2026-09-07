@@ -677,6 +677,35 @@ window._dnaRefresh = function(title, ph){
   });
 };
 
+/* ─── 模块D/G 文件上传提交（读文件→OSS→product.generate）─── */
+window._submitImage = function(module, title){
+  var fileInput = document.querySelector('#page input[type=file]');
+  if (!fileInput || !fileInput.files || !fileInput.files.length) { alert('请先上传图片'); return; }
+  var file = fileInput.files[0];
+  var reader = new FileReader();
+  reader.onload = async function(){
+    var dataUrl = String(reader.result || '');
+    try {
+      var upRes = await fetch('https://catoss.zeabur.app/upload', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer 467e8917de65314abe306dc61e4238fdd6957bbc0041525d'},
+        body: JSON.stringify({base64: dataUrl, dir: 'generated-assets', filename: module + '_' + Date.now() + '.jpg'})
+      });
+      var up = await upRes.json();
+      if (!up.ok || !up.url) { alert('图片上传失败：' + (up.error || '未知错误')); return; }
+      var payload = {
+        sku: 'IMAGE-' + Date.now(), module: module, mode: 'scene', image_url: up.url,
+        scene_descs: [{sceneSetting: 'product on clean white background, studio lighting, professional product photography'}],
+        aspect_ratio: '1:1', quality: '1K'
+      };
+      var gr = await L4.fetch('product.generate', payload);
+      if (gr.success) { alert('已提交' + (title||'任务') + '，约 30-60 秒完成，可在「素材资产库」查看'); location.reload(); }
+      else alert('提交失败：' + (gr.error || '未知错误'));
+    } catch(e) { alert('处理出错：' + e.message); }
+  };
+  reader.readAsDataURL(file);
+};
+
 /* ─── 色板小色块（DNA详情 color_system 可视化）─── */
 function pal(colors){
   return '<span class="pal">'+colors.map(function(c){

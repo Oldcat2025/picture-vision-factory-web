@@ -227,7 +227,7 @@ page('task-d', {
       fld('候选数量', pick(['1张(快速)','3张(推荐)','5张(多选)']))+
       fld('输出尺寸', pick(['2000×2000(亚马逊标准)','自定义...']))+
     '</div>') +
-    '<div class="btnrow">'+btn('提交检测',null,"window._todo('主图合规检测需上传图片后处理，待接入')")+btn('批量上传','btn--ghost',"window._todo('批量上传待接入')")+'</div>' +
+    '<div class="btnrow">'+btn('提交检测',null,"window._submitImage('D','主图合规检测')")+btn('批量上传','btn--ghost',"window._todo('批量上传待接入')")+'</div>' +
     panel('最近任务', table(
       ['任务ID','原图','合规分','状态','处理时间'],
       [
@@ -318,7 +318,7 @@ page('task-g', {
       fld('输出画质', pick(['1K','2K(推荐)','4K(打样)']))+
       fld('生图模型', pick(['自动选择','Gemini优先','GPT优先']))+
     '</div>') +
-    '<div class="btnrow">'+btn('提交生成',null,"window._todo('图案设计需上传参考图后处理，待接入')")+btn('保存配置','btn--ghost',"window._todo('保存配置待接入')")+'</div>' +
+    '<div class="btnrow">'+btn('提交生成',null,"window._submitImage('G','图案生成')")+btn('保存配置','btn--ghost',"window._todo('保存配置待接入')")+'</div>' +
     panel('最近任务', table(
       ['任务ID','参考图数','原创度','候选数','提交时间'],
       [
