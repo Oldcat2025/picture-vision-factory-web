@@ -37,11 +37,14 @@ async function submitTask(moduleKey){
     });
     if (!t.success) { alert('竞品分析触发失败：' + (t.error || '未知错误')); return; }
   }
+  var mtInput = document.querySelector('#page .ctl--module-type');
+  var moduleType = mtInput ? String(mtInput.value || '').trim() : '';
   var payload = {
     sku: sku, module: moduleKey, mode: 'scene',
     image_url: img,
     scene_descs: [{sceneSetting: 'the product in a modern minimalist setting with soft natural light, professional product photography'}],
-    aspect_ratio: '1:1', quality: '1K'
+    aspect_ratio: '1:1', quality: '1K',
+    params: moduleType ? {module_type: moduleType} : {}
   };
   var r = await L4.fetch('product.generate', payload);
   if (r.success) {
@@ -275,6 +278,7 @@ page('task-f', {
     return modulePage({
       mod: 'F',
       fields: [
+        fld('A+图片类型', '<select class="ctl ctl--module-type"><option value="banner">Banner 横幅图</option><option value="lifestyle">Lifestyle 场景图</option><option value="detail">Detail 细节图</option><option value="comparison">Comparison 对比图</option><option value="whatsinbox">WhatsInBox 开箱图</option></select>'),
         fld('选定主题', pick(['T1-COASTAL','T2-FARMHOUSE','T3-CHRISTMAS','T4-HALLOWEEN','T-CUSTOM(自定义)'])),
         fld('自定义主题参考图', '<input type="file" class="ctl" accept="image/*" disabled>', '仅T-CUSTOM时启用'),
         fld('Lifestyle素材来源', '<div style="display:grid;gap:8px">'+
