@@ -255,7 +255,11 @@ page('sys-cred', {
     var data = rows.map(function(row){
       return [
         row.user_name || '-',
-        chip(row.role || '-', roleTone[row.role] || 'neutral'),
+        (function(){
+          var arr = (row.roles && row.roles.length) ? row.roles : null;
+          if (!arr) return chip(row.role || '-', roleTone[row.role] || 'neutral');
+          return arr.map(function(c){ var cn = roleCodeCn[c] || c; return chip(cn, roleTone[cn] || 'neutral'); }).join(' ');
+        })(),
         row.tenant_schema || '-',
         chip(row.active ? '激活' : '停用', row.active ? 'ok' : 'neutral'),
         row.last_used_at ? String(row.last_used_at).slice(0,16) : '从未使用'
@@ -293,8 +297,11 @@ page('adm-user', {
     var r = await L4.fetch('admin.user.list', {});
     if (!r.success) return callout('warn', '数据加载失败', r.error || '未知错误');
     var rows = r.data || [];
-    var roleTone = {'系统管理员':'ok','内容管理员':'neutral','运营':'neutral'};
-    var roleOpts = ['运营','内容管理员','系统管理员'];
+    var roleTone = {'系统管理员':'ok','内容管理员':'neutral','运营':'neutral','管理员':'ok'};
+    var roleOpts = ['运营','内容管理员','系统管理员','管理员'];
+    var roleCodeCn = {operator:'运营', content_admin:'内容管理员', sys_admin:'系统管理员', admin:'管理员'};
+    window._admUserCache = {};
+    rows.forEach(function(rr){ window._admUserCache[rr.user_name] = rr.roles || []; });
     var data = rows.map(function(row){
       var un = row.user_name || '-';
       var btns = '<button class="xbtn" onclick="window._admEditRole(\''+un+'\')">改角色</button> ' +
@@ -330,13 +337,33 @@ window._admCreate = async function(){
   if (res.success && res.data && res.data.length > 0) { alert('已新增账号 ' + n); location.reload(); }
   else { alert('新增失败：' + (res.error || '用户名可能已存在')); }
 };
-window._admEditRole = async function(un){
-  var roles = ['运营','内容管理员','系统管理员'];
-  var cur = prompt('输入新角色（运营 / 内容管理员 / 系统管理员）：', '运营');
-  if (!cur || roles.indexOf(cur) < 0) { alert('角色无效'); return; }
-  var res = await L4.fetch('admin.user.update', {user_name: un, role: cur});
-  if (res.success) { alert('已更新角色'); location.reload(); }
-  else { alert('更新失败：' + (res.error || '')); }
+window._admEditRole = function(un){
+  var map = [['运营','operator'],['内容管理员','content_admin'],['系统管理员','sys_admin'],['管理员','admin']];
+  var cur = (window._admUserCache && window._admUserCache[un]) || [];
+  var html = map.map(function(pr){
+    var ck = (cur.indexOf(pr[1]) >= 0) ? ' checked' : '';
+    return '<label style="display:block;margin:8px 0;font-size:13px;cursor:pointer"><input type="checkbox" value="' + pr[1] + '"' + ck + '> ' + pr[0] + '</label>';
+  }).join('');
+  var old = document.getElementById('roleDlg'); if (old) old.remove();
+  var dlg = document.createElement('div');
+  dlg.id = 'roleDlg';
+  dlg.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center';
+  dlg.innerHTML = '<div style="background:#fff;border-radius:10px;padding:20px 22px;min-width:300px;box-shadow:0 8px 30px rgba(0,0,0,.2)">'
+    + '<div style="font-weight:600;margin-bottom:10px">设置「' + un + '」的角色（可多选）</div>'
+    + html
+    + '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">'
+    + '<button class="xbtn" onclick="document.getElementById(\'roleDlg\').remove()">取消</button>'
+    + '<button class="btn" onclick="window._admRoleSave(\'' + un + '\')">保存</button></div></div>';
+  document.body.appendChild(dlg);
+};
+window._admRoleSave = async function(un){
+  var boxes = document.querySelectorAll('#roleDlg input[type=checkbox]');
+  var codes = [];
+  Array.prototype.forEach.call(boxes, function(b){ if (b.checked) codes.push(b.value); });
+  if (!codes.length) { alert('至少选择一个角色'); return; }
+  var res = await L4.fetch('admin.user.set_roles', {user_name: un, roles: codes});
+  if (res.success) { document.getElementById('roleDlg').remove(); alert('已设置 ' + codes.length + ' 个角色'); location.reload(); }
+  else { alert('设置失败：' + (res.error || '')); }
 };
 window._admResetPwd = async function(un){
   var np = prompt('输入新密码（重置 ' + un + ' 的登录密码）：');
