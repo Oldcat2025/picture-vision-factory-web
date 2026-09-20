@@ -407,7 +407,7 @@ page('adm-audit', {
       [
         inp('搜索操作对象...'),
         sel('操作类型',['全部','配置修改','资产引用','DNA强制刷新','凭证变更','用户登录','权限变更']),
-        sel('操作人',['全部','admin','content_mgr','ops_user'])
+        sel('操作人',['全部','xixd','oldcat','prod_regress'])
       ],
       [btn('导出CSV','btn--ghost',"window._exportCsv()")]
     ) +
