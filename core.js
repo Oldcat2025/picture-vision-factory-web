@@ -743,6 +743,9 @@ function findNav(id){
   return null;
 }
 
+/* 权限判定：页面声明 roles[]，命中当前角色或通配 '*' 即可见。
+   角色名必须与 platform.roles.role_name 一致 —— DB 侧有 users_role_fk 硬闸兜底，
+   任何未登记的角色名在写入当刻就报错，不会静默退化成「无权限」。 */
 function allowed(def){
   if (!def || !def.roles) return true;
   return def.roles.indexOf(ROLE) >= 0 || def.roles.indexOf('*') >= 0;

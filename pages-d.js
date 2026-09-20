@@ -251,7 +251,7 @@ page('sys-cred', {
     var r = await L4.fetch('admin.user.list', {});
     if (!r.success) return callout('warn', '数据加载失败', r.error || '未知错误');
     var rows = r.data || [];
-    var roleTone = {'admin':'ok','系统管理员':'ok','operator':'neutral','运营':'neutral','内容管理员':'neutral'};
+    var roleTone = {'系统管理员':'ok','operator':'neutral','运营':'neutral','内容管理员':'neutral'};
     var data = rows.map(function(row){
       return [
         row.user_name || '-',
@@ -297,9 +297,9 @@ page('adm-user', {
     var r = await L4.fetch('admin.user.list', {});
     if (!r.success) return callout('warn', '数据加载失败', r.error || '未知错误');
     var rows = r.data || [];
-    var roleTone = {'系统管理员':'ok','内容管理员':'neutral','运营':'neutral','管理员':'ok'};
-    var roleOpts = ['运营','内容管理员','系统管理员','管理员'];
-    var roleCodeCn = {operator:'运营', content_admin:'内容管理员', sys_admin:'系统管理员', admin:'管理员'};
+    var roleTone = {'系统管理员':'ok','内容管理员':'neutral','运营':'neutral'};
+    var roleOpts = ['运营','内容管理员','系统管理员'];
+    var roleCodeCn = {operator:'运营', content_admin:'内容管理员', sys_admin:'系统管理员'};
     window._admUserCache = {};
     rows.forEach(function(rr){ window._admUserCache[rr.user_name] = rr.roles || []; });
     var data = rows.map(function(row){
@@ -338,7 +338,7 @@ window._admCreate = async function(){
   else { alert('新增失败：' + (res.error || '用户名可能已存在')); }
 };
 window._admEditRole = function(un){
-  var map = [['运营','operator'],['内容管理员','content_admin'],['系统管理员','sys_admin'],['管理员','admin']];
+  var map = [['运营','operator'],['内容管理员','content_admin'],['系统管理员','sys_admin']];
   var cur = (window._admUserCache && window._admUserCache[un]) || [];
   var html = map.map(function(pr){
     var ck = (cur.indexOf(pr[1]) >= 0) ? ' checked' : '';
