@@ -896,6 +896,8 @@ async function render(){
 }
 
 function updateAvatar(){
+  var roleSelect=document.getElementById('roleSelect');
+  if(roleSelect)roleSelect.value=ROLE;
   var av = document.getElementById('avatar');
   if (!av) return; /* 防御性写法：即使DOM结构未来再变，也不整页崩溃 */
   var u = currentUser();
@@ -911,6 +913,21 @@ function updateAvatar(){
 }
 
 async function BOOT(){
+  var search=document.getElementById('globalSearch');
+  if(search)search.onkeydown=async function(e){
+    if(e.key!=='Enter'||!currentUser())return;
+    var q=search.value.trim();if(!q)return;
+    var r=await L4.fetch('product.get',{sku:q});
+    if(!r.success){alert(r.error||'搜索失败');return;}
+    if(r.data&&r.data[0]){sessionStorage.setItem('vf_cur_pid',r.data[0].identity.id);location.hash='pid-dna';await render();return;}
+    if(/^[a-f0-9]{8}-[a-f0-9-]{27}$/i.test(q)){
+      var a=await L4.fetch('assets.get',{asset_id:q});
+      if(a.success&&a.data&&a.data[0]){sessionStorage.setItem('vf_cur_asset',q);location.hash='asset-detail';await render();return;}
+      var t=await L4.fetch('product.task',{task_id:q,limit:1});
+      if(t.success&&t.data&&t.data[0]){taskDetailModal(t.data[0]);return;}
+    }
+    alert('未找到对应SKU、任务或资产');
+  };
   var sp = document.getElementById('spec');
   var mk = document.getElementById('mask');
   var open = function(v){ sp.classList.toggle('open', v); mk.classList.toggle('on', v); };

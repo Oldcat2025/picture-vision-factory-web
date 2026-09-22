@@ -601,7 +601,7 @@ page('track-perf', {
 
 // track-ab：A/B测试记录（接 listing.list table=ab_test）
 page('track-ab', {
-  roles: ['*'],
+  roles: ['内容管理员','系统管理员'],
   spec: {
     q: 'A/B测试记录：对比测试的样本与结论',
     acts: ['查看AB测试','记录测试结论','对比版本'],
@@ -622,7 +622,7 @@ page('track-ab', {
 
 // track-backtest：优化建议与回测（接 listing.list table=backtest）
 page('track-backtest', {
-  roles: ['*'],
+  roles: ['内容管理员','系统管理员'],
   spec: {
     q: '优化建议与回测：参数优化的回测记录与建议',
     acts: ['查看回测记录','应用优化建议','对比回测结果'],
