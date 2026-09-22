@@ -105,6 +105,18 @@ page('asset-detail', {
 });
 
 // ⑤ 生成台账组
+function ledgerMonth(){
+  var day=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  return {date_from:day.slice(0,7)+'-01',date_to:day};
+}
+function ledgerEscape(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+window._ledgerDetails=async function(module,layer,model){
+  var p=ledgerMonth();p.module=module;p.layer=layer;p.effective_model=model;p.limit=200;
+  var r=await L4.fetch('ledger.list',p);
+  var area=document.getElementById('ledgerDetails');
+  if(!area)return;
+  area.innerHTML=r.success?panel('调用明细（最多200条）',table(['时间','模块','层级','请求模型','实际模型','降级原因','状态','重试','成本','错误'],(r.data||[]).map(function(x){return [x.created_at,x.module,x.layer,x.requested_model,x.effective_model,x.fallback_reason,x.status,x.retry_count,x.cost_estimate_usd,x.error_message].map(ledgerEscape);}))) : callout('warn','明细加载失败',ledgerEscape(r.error));
+};
 page('ledger-cost', {
   roles: ['内容管理员','系统管理员'],
   spec: {
@@ -115,17 +127,18 @@ page('ledger-cost', {
     limits: ['成本为估算值，精确账单见云厂商']
   },
   body: async function(){
-    var r = await L4.fetch('ledger.summary', {});
+    var r = await L4.fetch('ledger.summary', ledgerMonth());
     if (!r.success) return callout('warn', '数据加载失败', r.error || '未知错误');
     var rows = r.data || [];
     if (!rows.length) return ghost('暂无台账数据');
-    var totalCalls = 0, totalCost = 0, totalOk = 0;
+    var totalCalls = 0, totalCost = 0, totalOk = 0, totalFailed = 0;
     rows.forEach(function(m){
       var c = Number(m.call_count) || 0;
       var ok = Number(m.success_count) || 0;
       totalCalls += c; totalOk += ok; totalCost += Number(m.total_cost_usd) || 0;
+      totalFailed += Number(m.failed_count) || 0;
     });
-    var failRate = totalCalls ? ((totalCalls - totalOk) / totalCalls * 100).toFixed(1) : '0.0';
+    var failRate = totalCalls ? (totalFailed / totalCalls * 100).toFixed(1) : '0.0';
     var avgCost = totalCalls ? (totalCost / totalCalls).toFixed(3) : '0.000';
     var sorted = rows.slice().sort(function(a,b){
       return (Number(b.total_cost_usd) || 0) - (Number(a.total_cost_usd) || 0);
@@ -135,11 +148,11 @@ page('ledger-cost', {
       var ok = Number(m.success_count) || 0;
       var cost = Number(m.total_cost_usd) || 0;
       var share = totalCost ? (cost / totalCost * 100).toFixed(1) + '%' : '0%';
-      var fr = c ? ((c - ok) / c * 100).toFixed(1) + '%' : '0%';
+      var fr = c ? ((Number(m.failed_count)||0) / c * 100).toFixed(1) + '%' : '0%';
       return [m.module || '-', String(c), '$' + cost.toFixed(2), share, fr];
     });
     return stats([
-      ['总调用次数', String(totalCalls), '跨模块累计', 'ok'],
+      ['本月调用次数', String(totalCalls), '上海时区月初至今', 'ok'],
       ['总成本', '$' + totalCost.toFixed(2), '估算值', 'ok'],
       ['平均单次成本', '$' + avgCost, '按调用数均摊', 'ok'],
       ['失败率', failRate + '%', '成功 ' + totalOk + ' 次', 'ok']
@@ -162,11 +175,11 @@ page('ledger-breakdown', {
   },
   guide: [
     '按Layer拆分回答<b>"哪层最贵"</b>：Layer2生图引擎通常占70%+成本',
-    '按模块×模型拆分识别<b>降级路由频率</b>：GPT列非零说明发生了Gemini→GPT降级',
+    '对照请求模型、实际模型和降级次数，判断路由变化；GPT调用本身不等于发生降级',
     '点击单元格数字可下钻到该维度的具体调用记录'
   ],
   body: async function(){
-    var r = await L4.fetch('ledger.list', {limit: 50});
+    var r = await L4.fetch('ledger.breakdown', ledgerMonth());
     if (!r.success) return callout('warn', '数据加载失败', r.error || '未知错误');
     var rows = r.data || [];
     if (!rows.length) return ghost('暂无台账数据');
@@ -185,12 +198,13 @@ page('ledger-breakdown', {
       var share = totalCost ? (cost / totalCost * 100).toFixed(1) + '%' : '0%';
       var fr = c ? ((c - ok) / c * 100).toFixed(1) + '%' : '0%';
       var avg = c ? Math.round((Number(m.total_duration_ms) || 0) / c) + 'ms' : '-';
-      return [m.module || '-', String(c), '$' + cost.toFixed(2), share, fr, avg];
+      var link='<button class="btn btn--ghost" onclick="window._ledgerDetails('+[m.module,m.layer,m.effective_model].map(function(x){return ledgerEscape(JSON.stringify(x||''));}).join(',')+')">'+c+'</button>';
+      return [ledgerEscape(m.module),ledgerEscape(m.layer),ledgerEscape(m.requested_model),ledgerEscape(m.effective_model),link,String(m.fallback_count||0), '$' + cost.toFixed(2), share, avg];
     });
-    return panel('按模块拆分（台账明细）', table(
-      ['模块', '调用次数', '总成本', '成本占比', '失败率', '平均耗时'],
+    return panel('本月层级 / 模型拆分', table(
+      ['模块','层级','请求模型','实际模型','调用次数','路由变化','总成本','成本占比','平均耗时'],
       tr
-    ), {note: '共 ' + totalCalls + ' 次调用 · 总成本 $' + totalCost.toFixed(2) + ' · 数据来自 generation_ledger 实时聚合'});
+    ), {note: '共 ' + totalCalls + ' 次调用 · 总成本 $' + totalCost.toFixed(2) + ' · 点击调用次数查看记录'})+'<div id="ledgerDetails"></div>';
   }
 });
 
@@ -198,47 +212,19 @@ page('ledger-failure', {
   roles: ['系统管理员'],
   spec: {
     q: '失败率与重试分析：按模块/层级下钻，展示error_message样例',
-    acts: ['识别高失败率模块','查看错误信息样例','触发批量重试'],
+    acts: ['识别失败和部分完成记录','查看错误信息和重试次数','导出错误CSV'],
     wf: ['WF-29-L4-API'],
     reads: ['tenant_oldcat.generation_ledger'],
     limits: ['只展示最近7天失败记录']
   },
   body: async function(){
-    var rf = await L4.fetch('ledger.list', {status: 'failed', limit: 50});
+    var now=new Date(),past=new Date(now.getTime()-6*86400000);
+    var fmt=function(d){return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);};
+    var rf = await L4.fetch('ledger.failures', {date_from:fmt(past),date_to:fmt(now),limit:200});
     if (!rf.success) return callout('warn', '数据加载失败', rf.error || '未知错误');
     var failed = rf.data || [];
     if (!failed.length) return ghost('暂无失败记录');
-    var rs = await L4.fetch('ledger.summary', {});
-    var totals = (rs.success ? (rs.data || []) : []);
-    var totalByModule = {};
-    totals.forEach(function(m){ totalByModule[m.module] = Number(m.call_count) || 0; });
-    var totalFailed = 0, failedCost = 0, totalAll = 0;
-    failed.forEach(function(m){
-      totalFailed += Number(m.call_count) || 0;
-      failedCost += Number(m.total_cost_usd) || 0;
-    });
-    totals.forEach(function(m){ totalAll += Number(m.call_count) || 0; });
-    var overallRate = totalAll ? (totalFailed / totalAll * 100).toFixed(1) + '%' : '-';
-    var sorted = failed.slice().sort(function(a,b){
-      return (Number(b.call_count) || 0) - (Number(a.call_count) || 0);
-    });
-    var tr = sorted.map(function(m){
-      var c = Number(m.call_count) || 0;
-      var all = totalByModule[m.module] || 0;
-      var rate = all ? (c / all * 100).toFixed(1) + '%' : '-';
-      return [m.module || '-', String(all), String(c), rate, '$' + (Number(m.total_cost_usd) || 0).toFixed(2)];
-    });
-    return stats([
-      ['失败记录数', String(totalFailed), '跨模块聚合', 'warn'],
-      ['整体失败率', overallRate, '失败 / 总调用', 'warn'],
-      ['失败成本', '$' + failedCost.toFixed(2), '估算值', 'warn'],
-      ['涉及模块', String(failed.length), '有失败记录的模块', 'warn']
-    ], 4) +
-    panel('按模块失败率排行', table(
-      ['模块', '总调用', '失败次数', '失败率', '失败成本'],
-      tr
-    ), {note: '仅聚合 status=FAILED 的台账记录；重试 / error_message 明细下钻待接入'}) +
-    '<div class="btnrow">' + btn('批量重试失败任务', 'btn--ghost',"window._todo('批量重试待接入')") + btn('导出错误日志CSV', 'btn--ghost',"window._exportCsv()") + '</div>';
+    return panel('最近7天失败 / 部分完成记录',table(['时间','模块','层级','实际模型','状态','重试次数','成本','错误原因'],failed.map(function(x){return [x.created_at,x.module,x.layer,x.effective_model,x.status,x.retry_count,x.cost_estimate_usd,x.error_message].map(ledgerEscape);})),{note:'最多200条。重试需要重新核对产品与生成参数后在任务页提交，不提供无参数盲重试。'})+'<div class="btnrow">'+btn('导出错误日志CSV','btn--ghost','window._exportCsv()')+'</div>';
   }
 });
 

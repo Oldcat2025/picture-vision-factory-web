@@ -502,7 +502,6 @@ window._publishSubmit = async function(){
 };
 
 /* ─── 通用占位提示 + CSV 导出 ─── */
-window._todo = function(msg){ alert(msg || '该功能为原型占位，正式版将接入'); };
 
 window._showJson = function(obj){
   var text;
@@ -694,28 +693,58 @@ window._dnaRefresh = async function(title, ph){
 };
 
 /* ─── 模块D/G 文件上传提交（读文件→OSS→product.generate）─── */
-window._submitImage = function(module, title){
+window._readImage = function(file){
+  if(!file || !/^image\//.test(file.type) || file.size>10*1024*1024) return Promise.reject(new Error('请选择10MB以内的图片'));
+  return new Promise(function(resolve,reject){var reader=new FileReader();reader.onload=function(){resolve(String(reader.result||''));};reader.onerror=function(){reject(new Error('读取图片失败'));};reader.readAsDataURL(file);});
+};
+window._fieldValue = function(label){
+  var fields=document.querySelectorAll('#page .fld');
+  for(var i=0;i<fields.length;i++){var l=fields[i].querySelector('label');if(l&&l.textContent===label){var ctl=fields[i].querySelector('.ctl');return ctl?ctl.value:'';}}
+  return '';
+};
+window._saveDraft=function(){
+  var u=currentUser();if(!u)return;
+  var rows=Array.from(document.querySelectorAll('#page input,#page select,#page textarea')).map(function(e){return e.type==='file'?null:{value:e.value,checked:e.checked};});
+  try{localStorage.setItem('vf_draft_'+u.id+'_'+CUR,JSON.stringify(rows));alert('已保存到当前浏览器。出于安全限制，图片文件需重新选择。');}catch(e){alert('保存失败：浏览器存储不可用');}
+};
+window._loadDraft=function(){
+  var u=currentUser();if(!u)return;
+  try{var rows=JSON.parse(localStorage.getItem('vf_draft_'+u.id+'_'+CUR)||'null');if(!rows){alert('没有已保存的本机草稿');return;}document.querySelectorAll('#page input,#page select,#page textarea').forEach(function(e,i){if(rows[i]&&e.type!=='file'){e.value=rows[i].value;e.checked=rows[i].checked;}});}catch(e){alert('草稿读取失败');}
+};
+window._batchImages=function(){
+  var input=document.querySelector('#page input[type=file]');
+  if(input){input.multiple=true;input.click();}
+};
+window._submitImage = async function(module, title){
   var fileInput = document.querySelector('#page input[type=file]');
   if (!fileInput || !fileInput.files || !fileInput.files.length) { alert('请先上传图片'); return; }
-  var file = fileInput.files[0];
-  var reader = new FileReader();
-  reader.onload = async function(){
-    var dataUrl = String(reader.result || '');
-    try {
-      var upRes = await L4.fetch('assets.upload', {base64: dataUrl, dir: 'generated-assets', filename: module + '_' + Date.now() + '.jpg'});
+  var files=Array.from(fileInput.files);
+  if(files.length>5 || module==='G'&&files.length<2){alert('模块G需2-5张参考图；主图批量最多5张');return;}
+  if(window._imageBusy)return;
+  window._imageBusy=true;
+  try {
+    var dataUrls=await Promise.all(files.map(window._readImage));
+    var quality=window._fieldValue('输出画质').indexOf('2K')===0?'2K':'1K';
+    var model=window._fieldValue('生图模型');
+    var jobs=module==='D'?dataUrls:[dataUrls[0]],completed=0;
+    for(var i=0;i<jobs.length;i++){
+      var upRes = await L4.fetch('assets.upload', {base64: jobs[i], dir: 'generated-assets', filename: module + '_' + Date.now() + '.png'});
       var upUrl = upRes && upRes.data && upRes.data[0] && upRes.data[0].url;
-      if (!upUrl) { alert('图片上传失败：' + (upRes && upRes.error || '未知错误')); return; }
+      if (!upUrl) throw new Error('图片上传失败：'+(upRes.error||'未知错误'));
       var payload = {
         sku: 'IMAGE-' + Date.now(), module: module, mode: 'scene', image_url: upUrl,
         scene_descs: [{sceneSetting: 'product on clean white background, studio lighting, professional product photography'}],
-        aspect_ratio: '1:1', quality: '1K'
+        aspect_ratio: '1:1', quality:quality,
+        model_preference:model.indexOf('GPT')>=0?'gpt-image-2':model.indexOf('Gemini')>=0?'gemini-3-pro-image':'AUTO',
+        reference_images:module==='G'?dataUrls:[],
+        params:{originality:window._fieldValue('原创度'),pattern_strategy:Array.from(document.querySelectorAll('#page input[type=checkbox]:checked')).map(function(e){return e.parentElement.textContent.trim();}).join('; ')}
       };
       var gr = await L4.fetch('product.generate', payload);
-      if (gr.success) { alert('已提交' + (title||'任务') + '，约 30-60 秒完成，可在「素材资产库」查看'); location.reload(); }
-      else alert('提交失败：' + (gr.error || '未知错误'));
-    } catch(e) { alert('处理出错：' + e.message); }
-  };
-  reader.readAsDataURL(file);
+      if(!gr.success)throw new Error('第'+(i+1)+'项失败，已完成'+completed+'项：'+(gr.error||'未知错误'));
+      completed++;
+    }
+    alert((title||'任务')+'已完成 '+completed+' 项，可在素材资产库查看');render();
+  } catch(e){alert(e.message);}finally{window._imageBusy=false;}
 };
 
 /* ─── 色板小色块（DNA详情 color_system 可视化）─── */

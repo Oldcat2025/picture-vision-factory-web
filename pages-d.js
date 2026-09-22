@@ -707,26 +707,23 @@ page('adm-perm', {
   }
 });
 
-// adm-integration：系统对接（静态说明页，LLM 网关）
+// adm-integration：生产配置及数据库业务证据，不把静态配置冒充实时健康状态。
 page('adm-integration', {
   roles: ['系统管理员'],
   spec: {
     q: '系统对接：展示接入的 LLM 网关与外部服务',
     acts: ['查看网关列表','查看对接状态'],
     wf: ['n8n后台（网关配置）'],
-    reads: [],
+    reads: ['generation_ledger','sorftime_cache','generated_assets'],
     limits: ['网关配置在 n8n 后台，前端只读展示']
   },
-  body: function(){
-    return panel('对接的 LLM 网关', table(
-      ['网关','用途','接口','状态'],
-      [
-        ['OpenAI API','场景图/模特图生成','api.openai.com/v1', chip('在线','ok')],
-        ['Anthropic API','文案/合规审查','api.anthropic.com', chip('在线','ok')],
-        ['Stability API','生图主引擎','api.stability.ai', chip('在线','ok')],
-        ['阿里云通义','OCR/多模态','dashscope.aliyuncs.com', chip('降级','warn')]
-      ]
-    ));
+  body: async function(){
+    var r=await L4.fetch('admin.integration.list',{});
+    if(!r.success)return callout('warn','系统对接加载失败',ledgerEscape(r.error));
+    return panel('生产系统对接与最近业务证据',table(
+      ['服务','用途','地址','证据口径','最近成功记录'],
+      (r.data||[]).map(function(x){return [x.service,x.purpose,x.endpoint,x.evidence,x.last_success||'暂无成功记录'].map(ledgerEscape);})
+    ),{note:'配置与业务历史不等同于实时可用性。Google Drive/飞书驱动未作为当前OSS归档链路启用，不展示虚假在线状态。'});
   }
 });
 

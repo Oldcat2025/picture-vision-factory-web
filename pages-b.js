@@ -30,7 +30,9 @@ async function submitTask(moduleKey){
   var asinRaw = asinInput ? String(asinInput.value || '').trim() : '';
   var competitorIds = asinRaw ? asinRaw.split(/[,，\s]+/).filter(Boolean).slice(0,3) : [];
   // 有竞品 ASIN：先触发 DNA + COSMO + SORFTIME 竞品分析
-  if (competitorIds.length > 0) {
+  var known=await L4.fetch('product.get',{sku:sku});
+  if (!known.success) {alert('产品查询失败：'+known.error);return;}
+  if (competitorIds.length > 0 || !(known.data||[]).length) {
     var t = await L4.fetch('product.trigger', {
       sku: sku, market: 'US', product_name: sku,
       main_image_url: img, competitor_ids: competitorIds
@@ -46,9 +48,27 @@ async function submitTask(moduleKey){
     aspect_ratio: '1:1', quality: '1K',
     params: moduleType ? {module_type: moduleType} : {}
   };
+  var quality=window._fieldValue('画质')||window._fieldValue('输出画质');
+  payload.quality=quality.indexOf('2K')===0?'2K':'1K';
+  var preference=window._fieldValue('生图模型偏好');
+  payload.model_preference=preference.indexOf('GPT')>=0?'gpt-image-2':preference.indexOf('Gemini')>=0?'gemini-3-pro-image':'AUTO';
+  payload.aspect_ratio=(window._fieldValue('画幅比例').match(/\d+:\d+/)||['1:1'])[0];
+  var count=Math.min(8,parseInt(window._fieldValue('图片数量'),10)||1);
+  if(moduleKey==='A-SCENE')payload.scene_descs=Array.from({length:count},function(_,i){return {sceneSetting:(window._fieldValue('场景风格')||'natural home setting')+'; distinct composition '+(i+1)};});
+  if(moduleKey==='A-MODEL')payload.model_specs=Array.from({length:count},function(){return {modelRegion:window._fieldValue('模特地区'),bodyType:window._fieldValue('模特体型'),ageRange:window._fieldValue('模特年龄段')};});
+  if(moduleKey==='F'){
+    var theme=window._fieldValue('选定主题');
+    payload.params.theme=theme;
+    payload.params.scene_prompt=theme.indexOf('T-CUSTOM')===0?'Use the additional reference for theme, palette and composition only; preserve the first image product exactly.':theme;
+    if(theme.indexOf('T-CUSTOM')===0){
+      var file=document.querySelector('#page .ctl--theme-file');
+      if(!file||!file.files.length){alert('自定义主题需选择参考图');return;}
+      try{payload.params.theme_reference=await window._readImage(file.files[0]);}catch(e){alert(e.message);return;}
+    }
+  }
   var r = await L4.fetch('product.generate', payload);
   if (r.success) {
-    alert('已提交生成任务：' + sku + '，正在生成图片（约 30-60 秒），完成后可在「最近任务 / 素材资产库」查看。');
+    alert('生成已返回：' + sku + '，请在「最近任务 / 素材资产库」查看实际结果。');
     render();
   } else {
     alert('提交失败：' + (r.error || '未知错误'));
@@ -59,8 +79,9 @@ async function submitTask(moduleKey){
 async function modulePage(opts){
   var sku = opts.sku || 'SKU-VASE-042';
   var fields = Array.isArray(opts.fields) ? opts.fields.join('') : opts.fields;
-  var modKey = opts.moduleKey || '';
-  var tr = await L4.fetch('product.task', {module: modKey, limit: 5});
+  var modKey = opts.moduleKey || opts.mod || '';
+  var moduleNames={'A-SCENE':'A_SCENE_MODEL','A-MODEL':'A_SCENE_MODEL',B:'B_LISTING',C:'C_TIKTOK',D:'D_MAIN_IMAGE',E:'E_TEMU',F:'F_APLUS',G:'G_PATTERN'};
+  var tr = await L4.fetch('product.task', {module: moduleNames[modKey] || modKey, limit: 5});
   var taskRows = (tr.data||[]).map(function(t){
     return [
       '<span class="m">'+String(t.id||'').slice(0,8)+'</span>',
@@ -83,7 +104,7 @@ async function modulePage(opts){
   panel('模块参数配置', '<div class="form g2">'+fields+'</div>') +
   '<div class="btnrow">'+
     '<button class="btn" onclick="submitTask(\''+modKey+'\')">提交生成任务</button>'+
-    btn('保存草稿','btn--ghost',"window._todo('保存草稿待接入')")+
+    btn('保存本机草稿','btn--ghost',"window._saveDraft()")+btn('恢复草稿','btn--ghost',"window._loadDraft()")+
   '</div>' +
   panel('最近任务', table(['任务ID','SKU','状态','模块','提交时间'], taskTable));
 }
@@ -230,7 +251,7 @@ page('task-d', {
       fld('候选数量', pick(['1张(快速)','3张(推荐)','5张(多选)']))+
       fld('输出尺寸', pick(['2000×2000(亚马逊标准)','自定义...']))+
     '</div>') +
-    '<div class="btnrow">'+btn('提交检测',null,"window._submitImage('D','主图合规检测')")+btn('批量上传','btn--ghost',"window._todo('批量上传待接入')")+'</div>' +
+    '<div class="btnrow">'+btn('提交检测',null,"window._submitImage('D','主图合规检测')")+btn('批量上传（最多5张）','btn--ghost',"window._batchImages()")+'</div>' +
     panel('最近任务', table(
       ['任务ID','原图','合规分','状态','处理时间'],
       [
@@ -280,7 +301,7 @@ page('task-f', {
       fields: [
         fld('A+图片类型', '<select class="ctl ctl--module-type"><option value="banner">Banner 横幅图</option><option value="lifestyle">Lifestyle 场景图</option><option value="detail">Detail 细节图</option><option value="comparison">Comparison 对比图</option><option value="whatsinbox">WhatsInBox 开箱图</option></select>'),
         fld('选定主题', pick(['T1-COASTAL','T2-FARMHOUSE','T3-CHRISTMAS','T4-HALLOWEEN','T-CUSTOM(自定义)'])),
-        fld('自定义主题参考图', '<input type="file" class="ctl" accept="image/*" disabled>', '仅T-CUSTOM时启用'),
+        fld('自定义主题参考图', '<input type="file" class="ctl ctl--theme-file" accept="image/*">', '选择T-CUSTOM时必填，其他主题不使用此文件'),
         fld('Lifestyle素材来源', '<div style="display:grid;gap:8px">'+
           '<label style="display:flex;align-items:center;gap:8px"><input type="radio" name="lf" checked> 重新生成（调用Layer2）</label>'+
           '<label style="display:flex;align-items:center;gap:8px"><input type="radio" name="lf"> 从资产库选择（复用已有场景图）</label>'+
@@ -306,8 +327,9 @@ page('task-g', {
     '原创度控制：低(保留主要元素) / 中(结构创新) / 高(风格致敬)',
     '拓展策略可组合：改构图+改色系 = 既变布局又换配色'
   ],
-  body: function(){
-    return callout('','模块G独立于SKU身份库',
+  body: async function(){
+    var recent=await L4.fetch('product.task',{module:'G_PATTERN',limit:5});
+    return callout('','模块G无需手工创建SKU',
       '图案设计模块<b>不需要SKU</b>，直接上传参考图即可。适用场景：家居纺织品图案开发、季节性主题创新。'
     ) +
     panel('参考图上传与参数', '<div class="form">'+
@@ -319,16 +341,13 @@ page('task-g', {
         '<label style="display:flex;align-items:center;gap:8px"><input type="checkbox" checked> 改色系（保留形态换配色）</label>'+
         '<label style="display:flex;align-items:center;gap:8px"><input type="checkbox"> 混合以上策略</label>'+
       '</div>')+
-      fld('输出画质', pick(['1K','2K(推荐)','4K(打样)']))+
+      fld('输出画质', pick(['1K','2K(推荐)']))+
       fld('生图模型', pick(['自动选择','Gemini优先','GPT优先']))+
     '</div>') +
-    '<div class="btnrow">'+btn('提交生成',null,"window._submitImage('G','图案生成')")+btn('保存配置','btn--ghost',"window._todo('保存配置待接入')")+'</div>' +
+    '<div class="btnrow">'+btn('提交生成',null,"window._submitImage('G','图案生成')")+btn('保存本机配置','btn--ghost',"window._saveDraft()")+btn('恢复配置','btn--ghost',"window._loadDraft()")+'</div>' +
     panel('最近任务', table(
-      ['任务ID','参考图数','原创度','候选数','提交时间'],
-      [
-        ['<span class="m">TASK-G-20260819-001</span>','3','中','5','2026-08-19 11:20'],
-        ['<span class="m">TASK-G-20260818-005</span>','4','高','8','2026-08-18 16:32']
-      ]
+      ['任务ID','状态','实际模型','成本','提交时间'],
+      (recent.data||[]).map(function(x){return [x.id,x.status,x.effective_model,x.cost_estimate_usd,x.created_at].map(ledgerEscape);})
     ));
   }
 });
