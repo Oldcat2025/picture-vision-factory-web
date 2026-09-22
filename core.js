@@ -14,15 +14,22 @@ var L4 = {
   base: (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
     ? 'http://localhost:5678/webhook/l4-api'
     : 'https://oldcat.zeabur.app/webhook/l4-api',
-  apiKey: 'l4-test-key-2026',
   async fetch(action, payload) {
     try {
+      var headers = { 'Content-Type': 'application/json' };
+      var token = sessionStorage.getItem('vf_token');
+      if (token && action !== 'admin.user.login') headers.Authorization = 'Bearer ' + token;
       var r = await fetch(this.base, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': this.apiKey },
+        headers: headers,
         body: JSON.stringify({ action: action, payload: payload || {} })
       });
       var j = await r.json();
+      if (r.status === 401 && action !== 'admin.user.login') {
+        clearUser();
+        var mask = document.getElementById('loginMask');
+        if (mask) mask.style.display = 'flex';
+      }
       return j; // {success, data, error}
     } catch (e) {
       return { success: false, data: null, error: 'L4-API 连接失败: ' + e.message };
@@ -36,7 +43,7 @@ function currentUser() {
   catch (e) { return null; }
 }
 function setUser(u) { sessionStorage.setItem('vf_user', JSON.stringify(u)); }
-function clearUser() { sessionStorage.removeItem('vf_user'); }
+function clearUser() { sessionStorage.removeItem('vf_user'); sessionStorage.removeItem('vf_token'); ROLE = ''; }
 
 /* 角色：运营 / 内容管理员 / 系统管理员（开发运维不使用本前端，操作n8n后台） */
 const ROLES = ['运营','内容管理员','系统管理员'];
@@ -731,7 +738,7 @@ function page(id, def){ window.PAGES[id] = def; }
 
 /* ═══ 路由与外壳 ═══ */
 var CUR  = 'dash-todo';
-var ROLE = '系统管理员';
+var ROLE = '';
 
 function findNav(id){
   for (var i=0;i<NAV.length;i++){
@@ -747,8 +754,11 @@ function findNav(id){
    角色名必须与 platform.roles.role_name 一致 —— DB 侧有 users_role_fk 硬闸兜底，
    任何未登记的角色名在写入当刻就报错，不会静默退化成「无权限」。 */
 function allowed(def){
+  var u = currentUser();
+  if (!u) return false;
   if (!def || !def.roles) return true;
-  return def.roles.indexOf(ROLE) >= 0 || def.roles.indexOf('*') >= 0;
+  var names = {sys_admin:'系统管理员',content_admin:'内容管理员',operator:'运营'};
+  return def.roles.indexOf('*') >= 0 || (u.roles || []).some(function(r){ return def.roles.indexOf(names[r]) >= 0; });
 }
 function groupVisibleCount(g){
   return g.items.filter(function(it){ return allowed(window.PAGES[it[2]]); }).length;
@@ -821,6 +831,7 @@ function renderSpec(def, nv){
 }
 
 async function render(){
+  if (!currentUser()) return;
   var id = location.hash.replace('#','') || 'dash-todo';
   if (!window.PAGES[id]) id = 'dash-todo';
   CUR = id;
@@ -863,14 +874,14 @@ function updateAvatar(){
     av.textContent = (u.user_name || u.role || '?').slice(0,1);
     av.title = u.user_name + ' · ' + u.role + '（点击退出登录）';
     av.style.cursor = 'pointer';
-    av.onclick = function(){ clearUser(); location.reload(); };
+    av.onclick = async function(){ await L4.fetch('admin.session.logout'); clearUser(); location.reload(); };
   } else {
     av.textContent = ROLE.slice(0,1);
     av.title = '当前角色：'+ROLE;
   }
 }
 
-function BOOT(){
+async function BOOT(){
   var sp = document.getElementById('spec');
   var mk = document.getElementById('mask');
   var open = function(v){ sp.classList.toggle('open', v); mk.classList.toggle('on', v); };
@@ -881,6 +892,12 @@ function BOOT(){
   /* 登录态：未登录 → 显示登录遮罩 */
   var loginMask = document.getElementById('loginMask');
   var user = currentUser();
+  loginMask.style.display = 'flex';
+  if (user && sessionStorage.getItem('vf_token')) {
+    var check = await L4.fetch('admin.session.me');
+    if (check.success && check.data && check.data[0]) { user = check.data[0]; setUser(user); }
+    else { clearUser(); user = null; }
+  } else { clearUser(); user = null; }
   if (user) {
     ROLE = user.role;
     loginMask.style.display = 'none';
@@ -898,7 +915,9 @@ function BOOT(){
     var r = await L4.fetch('admin.user.login', { user_name: u, password: p });
     if (r.success && r.data && r.data.length > 0) {
       var info = r.data[0];
-      setUser({ user_name: info.user_name, role: info.role });
+      sessionStorage.setItem('vf_token', info.token);
+      setUser({ id:info.id, user_name: info.user_name, role: info.role, roles:info.roles });
+      document.getElementById('loginPass').value = '';
       ROLE = info.role;
       loginMask.style.display = 'none';
       err.textContent = '';
