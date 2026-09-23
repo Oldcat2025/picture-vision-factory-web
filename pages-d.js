@@ -3,16 +3,20 @@
 /* ─── 配置表动态渲染：用 Object.keys 生成列，不臆造后端字段（id 为技术主键不展示） ─── */
 function cfgTable(rows, emptyMsg){
   if (!rows || !rows.length) return ghost(emptyMsg || '暂无配置数据');
-  var keys = Object.keys(rows[0]).filter(function(k){ return k !== 'id'; });
+  /* thumbnail_ref 不按原文展示，改成缩略图列（同表有商品维度时才出现） */
+  var keys = Object.keys(rows[0]).filter(function(k){ return k !== 'id' && k !== 'thumbnail_ref'; });
+  var hasThumb = rows.some(function(r){ return r && r.thumbnail_ref; });
+  var cols = hasThumb ? ['缩略图'].concat(keys) : keys;
   var data = rows.map(function(row){
-    return keys.map(function(k){
+    var cells = keys.map(function(k){
       var v = row[k];
       if (v === null || v === undefined || v === '') return '-';
       if (typeof v === 'boolean') return chip(v ? '是' : '否', v ? 'ok' : 'neutral');
       return String(v);
     });
+    return hasThumb ? [thumbImg(row.thumbnail_ref, 40)].concat(cells) : cells;
   });
-  return table(keys, data);
+  return table(cols, data);
 }
 
 // ⑥ 配置中心组

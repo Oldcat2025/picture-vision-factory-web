@@ -117,6 +117,20 @@ const NAV = [
 
 function chip(t, tone){ return '<span class="chip chip--'+(tone||'neutral')+'">'+t+'</span>'; }
 
+/* 缩略图单元格：OSS 图片自动加 resize 参数，非 OSS 原样，加载失败降级灰底占位 */
+var THUMB_PH = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';
+function thumbImg(url, px){
+  px = px || 40;
+  var u = String(url || '');
+  if (!u) return '<span class="ghost">无图</span>';
+  var src = u;
+  if (u.indexOf('aliyuncs.com') >= 0 && u.indexOf('x-oss-process') < 0) {
+    src = u + (u.indexOf('?') >= 0 ? '&' : '?') + 'x-oss-process=image/resize,w_' + (px * 2);
+  }
+  return '<img src="' + src + '" alt="" loading="lazy" style="width:' + px + 'px;height:' + px
+    + 'px;object-fit:cover;border-radius:6px;display:block;background:#f1f2f4"'
+    + ' onerror="this.onerror=null;this.src=\'' + THUMB_PH + '\'">';
+}
 function table(cols, rows){
   var h = cols.map(function(c){ return '<th>'+c+'</th>'; }).join('');
   var b = rows.map(function(r){

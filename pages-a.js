@@ -37,6 +37,7 @@ page('dash-todo', {
     };
     var taskRows = tasks.slice(0, 5).map(function(t){
       return [
+        thumbImg(t.thumbnail_ref, 40),
         '<span class="m">'+String(t.id||'')+'</span>',
         t.sku || '-',
         t.module || '-',
@@ -45,8 +46,8 @@ page('dash-todo', {
       ];
     });
     var taskTable = panel('近期任务', table(
-      ['任务ID','SKU','模块','状态','提交时间'],
-      taskRows.length ? taskRows : [['<span class="ghost">暂无任务数据</span>','','','','']]
+      ['缩略图','任务ID','SKU','模块','状态','提交时间'],
+      taskRows.length ? taskRows : [['<span class="ghost">暂无任务数据</span>','','','','','']]
     ));
 
     if (role === '运营') {
@@ -104,6 +105,7 @@ page('dash-overview', {
     var rows = tasks.slice(0, 5).map(function(t){
       var tj = JSON.stringify(t).replace(/'/g, "&#39;");
       return [
+        thumbImg(t.thumbnail_ref, 40),
         '<span class="m">'+String(t.id||'')+'</span>',
         t.sku || '-',
         t.module || '-',
@@ -120,7 +122,7 @@ page('dash-overview', {
       {t:'7个业务模块',s:'场景图/Listing/TikTok/...',n:bizCount,tone:'warn'},
       {t:'Layer 2',s:'统一生图引擎',n:layerCount.LAYER2,tone:'ok',go:'ledger-breakdown'}
     ]) + panel('最近活跃任务', table(
-      ['任务ID','SKU','模块','当前层级','状态','开始时间','操作'],
+      ['缩略图','任务ID','SKU','模块','当前层级','状态','开始时间','操作'],
       rows
     ));
   }
