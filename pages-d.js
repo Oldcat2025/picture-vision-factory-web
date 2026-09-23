@@ -1,12 +1,24 @@
 /* ══ pages-d.js: ⑥配置中心组(6页) + ⑦系统设置组(4页) ══ */
 
 /* ─── 配置表动态渲染：用 Object.keys 生成列，不臆造后端字段（id 为技术主键不展示） ─── */
+/* 上线追踪/配置类表格的列名中文映射（后端字段名不直接示人） */
+var CFG_LABELS = {
+  product_identity_id:'产品', asset_ids:'关联资产', listing_url:'上架链接', published_at:'上架时间',
+  published_by:'登记人', platform:'平台', notes:'备注', created_at:'创建时间',
+  listing_publication_id:'上架记录', snapshot_period:'统计周期', impressions:'展示次数',
+  clicks:'点击次数', conversion_rate:'转化率(%)', units_sold:'销量(件)', source:'数据来源',
+  synced_at:'同步时间', test_group_label:'分组标签', theme_code:'主题代码', started_at:'开始时间',
+  ended_at:'结束时间', result_summary:'结果摘要', scope:'适用范围', suggestion_text:'优化建议',
+  based_on_ab_test_ids:'依据测试', generated_at:'生成时间', reviewed_by:'复核人',
+  version:'版本', description:'说明', applied_at:'应用时间', thumbnail_ref:'缩略图'
+};
 function cfgTable(rows, emptyMsg){
   if (!rows || !rows.length) return ghost(emptyMsg || '暂无配置数据');
   /* thumbnail_ref 不按原文展示，改成缩略图列（同表有商品维度时才出现） */
   var keys = Object.keys(rows[0]).filter(function(k){ return k !== 'id' && k !== 'thumbnail_ref'; });
   var hasThumb = rows.some(function(r){ return r && r.thumbnail_ref; });
-  var cols = hasThumb ? ['缩略图'].concat(keys) : keys;
+  var cols = keys.map(function(k){ return CFG_LABELS[k] || k; });
+  if (hasThumb) cols = ['缩略图'].concat(cols);
   var data = rows.map(function(row){
     var cells = keys.map(function(k){
       var v = row[k];

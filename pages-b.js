@@ -420,7 +420,7 @@ page('task-pipeline', {
           String(r.status || '') + (r.fallback_reason ? (' / ' + r.fallback_reason) : ''),
           (r.duration_ms != null ? (r.duration_ms + 'ms') : '') + (r.cost_estimate_usd != null ? (' / $' + r.cost_estimate_usd) : '')];
       });
-      if (!steps.length) steps = [['wait', '该层无调用记录', '台账中没有这一层（缓存复用或未启用）', '-']];
+      if (!steps.length) steps = [['wait', '该层无调用记录', '台账中没有这一层（缓存复用，或该层未落台账）', '-']];
       return { no: no, t: t, s: s, state: st, time: list.length ? (sumOf(list, 'duration_ms') + ' ms') : '-', chip: badge, steps: steps };
     }
     function byLayer(l){ return rows.filter(function(r){ return String(r.layer || '') === l; }); }
