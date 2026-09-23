@@ -627,6 +627,41 @@ window._abCreate = async function(){
   });
 };
 
+/* ─── 上线跟踪：手工录入周表现快照（source=MANUAL_ENTRY） ───
+   说明：自动回流（source=PROJECT_24_SYNC）尚未接通，当前提供手工录入通道。
+   表 listing_performance_snapshot.source 只允许 PROJECT_24_SYNC / MANUAL_ENTRY。 */
+window._snapshotCreate = async function(){
+  var pr = await L4.fetch('listing.list', {table:'publication', limit:200});
+  var pubs = (pr.success ? (pr.data||[]) : []);
+  if (!pubs.length) { alert('还没有上架登记记录。请先到「上架登记」页登记一次上架，再来录入表现数据。'); return; }
+  window._formModal('录入周表现', [
+    {key:'pub', label:'上架记录', options: pubs.map(function(r){ return {v:r.id, t:(r.platform||'-')+' / '+String(r.id).slice(0,8)+' / '+String(r.published_at||r.created_at||'').slice(0,10)}; })},
+    {key:'period', label:'周期', ph:'如 2026-09 或 2026-W39'},
+    {key:'impressions', label:'展示次数', ph:'数字，如 12000'},
+    {key:'clicks', label:'点击次数', ph:'数字，如 340'},
+    {key:'conv', label:'转化率(%)', ph:'数字，如 3.5'},
+    {key:'units', label:'销量(件)', ph:'数字，如 42'}
+  ], async function(v){
+    if (!v.pub) { alert('请选择上架记录'); return; }
+    if (!v.period) { alert('周期必填，例如 2026-09'); return; }
+    var num = function(x){ var n = parseFloat(String(x||'').replace(/[^0-9.\-]/g,'')); return isNaN(n) ? null : n; };
+    var row = {
+      id: genId(),
+      listing_publication_id: v.pub,
+      snapshot_period: v.period,
+      impressions: num(v.impressions),
+      clicks: num(v.clicks),
+      conversion_rate: num(v.conv),
+      units_sold: num(v.units),
+      source: 'MANUAL_ENTRY',
+      synced_at: new Date().toISOString()
+    };
+    var res = await L4.fetch('listing.upsert', {table:'snapshot', row: row});
+    if (res.success) { var m = document.getElementById('fm-modal'); if (m) m.remove(); alert('已录入周表现'); location.reload(); }
+    else alert('保存失败：' + (res.error || '未知错误'));
+  });
+};
+
 window._backtestCreate = function(){
   window._formModal('发起回测（记录优化建议）', [
     {key:'scope', label:'适用范围', ph:'如 theme T1_COASTAL / 家居品类'},

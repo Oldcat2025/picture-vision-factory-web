@@ -464,7 +464,7 @@ page('sys-model', {
       '<input id="ck_key" type="password" placeholder="密钥(sk-...)" class="inp" style="flex:1.4;min-width:160px">' +
       '<button class="btn" onclick="window._credSave()">保存密钥</button>' +
       '</div>';
-    return panel('模型密钥管理',
+    return callout('', '登记台账，不参与出图', '本页保存的是平台侧<b>凭证登记</b>信息（哪个提供方/模型配了哪个密钥提示）。实际调用用的密钥保存在 n8n 凭据库，生成链路<b>不从这张表取密钥</b> —— 在这里改动不会影响出图。如需让登记信息驱动实际调用，属待接入项。') + panel('模型密钥管理',
       callout('', '密钥安全', '密钥<b>只存加密密文</b>，前端<b>永不回显明文</b>，仅显示脱敏 hint（如 sk-****xxxx）。保存后由独立同步脚本同步到 n8n credentials，供生图工作流调用。') +
       addForm +
       table(['提供方','模型','密钥(脱敏)','状态','同步时间'], data.length ? data : [['<span class="ghost">暂无密钥</span>','','','','']])
@@ -509,7 +509,7 @@ page('sys-binding', {
         row.updated_at ? String(row.updated_at).slice(0,16) : '-'
       ];
     });
-    return toolbar(
+    return callout('', '登记台账，不参与出图', '本页是<b>模型绑定登记</b>。实际出图用哪个模型由 L2 引擎按「敏感品类 / 有无参考图 / 文字密集」自动路由，<b>不读这张表</b> —— 改这里不会改变路由结果。') + toolbar(
       [inp('搜索绑定环节...'), sel('状态',['全部','启用','停用'])],
       [btn('刷新','btn--ghost',"location.reload()")]
     ) +
@@ -548,7 +548,7 @@ page('sys-param', {
         row.created_at ? String(row.created_at).slice(0,16) : '-'
       ];
     });
-    return toolbar(
+    return callout('', '登记台账，不参与出图', '本页是<b>生图参数版本登记</b>。当前默认画质/画幅由工作流内部参数决定，生成链路<b>不读这张表</b> —— 改这里不会改变出图效果。') + toolbar(
       [inp('搜索版本标签...'), sel('状态',['全部','启用','停用'])],
       [btn('新增参数版本',null,"window._paramCreate()"), btn('导出','btn--ghost',"window._exportCsv()")]
     ) +
@@ -590,14 +590,14 @@ page('track-perf', {
     acts: ['查看表现快照','按周筛选','对比趋势'],
     wf: ['WF-29-L4-API'],
     reads: ['tenant_oldcat.snapshot'],
-    limits: ['表现数据按周采集，非实时']
+    limits: ['手工录入通道已开通；自动回流（PROJECT_24_SYNC）尚未接通']
   },
   body: async function(){
     var r = await L4.fetch('listing.list', {table:'snapshot', limit:100});
     if (!r.success) return callout('warn', '数据加载失败', r.error || '未知错误');
     return toolbar(
       [inp('搜索SKU...'), sel('周次',['全部'])],
-      [btn('导出周报','btn--ghost',"window._exportCsv()")]
+      [btn('录入周表现',null,"window._snapshotCreate()"), btn('导出周报','btn--ghost',"window._exportCsv()")]
     ) +
     cfgTable(r.data || [], '暂无表现快照数据');
   }
@@ -758,7 +758,7 @@ page('adm-cost', {
         row.updated_at ? String(row.updated_at).slice(0,16) : '-'
       ];
     });
-    return panel('成本预算配置', table(
+    return callout('', '登记台账，不阻断出图', '本页是<b>成本预算登记</b>。成本为估算值；当前<b>未做超预算硬性中断</b>，仅作记录与提醒用途。') + panel('成本预算配置', table(
       ['范围','月预算(USD)','告警阈值','状态','更新人','更新时间'],
       data.length ? data : [['<span class="ghost">暂无预算配置</span>','','','','','']]
     )) +
