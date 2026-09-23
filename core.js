@@ -926,6 +926,9 @@ function updateAvatar(){
   }
 }
 
+/* 流水线页的任务切换：记住选择后重载（避免行内 onclick 转义） */
+window._pickTask = function(id){ try { sessionStorage.setItem('vf_cur_task', String(id||'')); } catch(e){} location.reload(); };
+
 async function BOOT(){
   var search=document.getElementById('globalSearch');
   if(search)search.onkeydown=async function(e){

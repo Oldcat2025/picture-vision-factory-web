@@ -77,13 +77,14 @@ async function submitTask(moduleKey){
 
 // 模块页共用结构
 async function modulePage(opts){
-  var sku = opts.sku || 'SKU-VASE-042';
+  var sku = opts.sku || '';
   var fields = Array.isArray(opts.fields) ? opts.fields.join('') : opts.fields;
   var modKey = opts.moduleKey || opts.mod || '';
   var moduleNames={'A-SCENE':'A_SCENE_MODEL','A-MODEL':'A_SCENE_MODEL',B:'B_LISTING',C:'C_TIKTOK',D:'D_MAIN_IMAGE',E:'E_TEMU',F:'F_APLUS',G:'G_PATTERN'};
   var tr = await L4.fetch('product.task', {module: moduleNames[modKey] || modKey, limit: 5});
   var taskRows = (tr.data||[]).map(function(t){
     return [
+      thumbImg(t.thumbnail_ref, 40),
       '<span class="m">'+String(t.id||'').slice(0,8)+'</span>',
       t.sku || '-',
       chip(t.status || '-', t.status==='SUCCESS'?'ok':(t.status==='FAILED'?'err':'warn')),
@@ -91,7 +92,7 @@ async function modulePage(opts){
       String(t.created_at||'').slice(0,16)
     ];
   });
-  var taskTable = taskRows.length ? taskRows : [['<span class="ghost">暂无任务，提交后显示</span>','','','','']];
+  var taskTable = taskRows.length ? taskRows : [['<span class="ghost">暂无任务，提交后显示</span>','','','','','']];
   return (opts.noSKU ? '' :
     '<div class="form"><div class="fld"><label>SKU 选择</label>'+
     '<input class="ctl" value="'+sku+'" placeholder="输入SKU或从列表选择..."></div>'+
@@ -106,7 +107,7 @@ async function modulePage(opts){
     '<button class="btn" onclick="submitTask(\''+modKey+'\')">提交生成任务</button>'+
     btn('保存本机草稿','btn--ghost',"window._saveDraft()")+btn('恢复草稿','btn--ghost',"window._loadDraft()")+
   '</div>' +
-  panel('最近任务', table(['任务ID','SKU','状态','模块','提交时间'], taskTable));
+  panel('最近任务', table(['缩略图','任务ID','SKU','状态','模块','提交时间'], taskTable));
 }
 
 page('task-a-scene', {
@@ -127,7 +128,6 @@ page('task-a-scene', {
   body: function(){
     return modulePage({
       mod: 'A-SCENE',
-      sku: 'SKU-VASE-042',
       fields: [
         fld('图片数量', pick(['3张','5张(默认)','8张'])),
         fld('画幅比例', pick(['1:1 方图','4:5 竖图','9:16 超竖'])),
@@ -136,10 +136,6 @@ page('task-a-scene', {
         fld('水印文案', txt('Built for Your Space',''), '留空则不加水印'),
         fld('场景风格', pick(['自动(从COSMO推断)','现代简约','温馨家居','北欧风','工业风']))
       ],
-      tasks: [
-        ['<span class="m">TASK-A-SCENE-20260819-001</span>','SKU-VASE-042',chip('已完成','ok'),'5','2026-08-19 14:22'],
-        ['<span class="m">TASK-A-SCENE-20260819-002</span>','SKU-VASE-042','<div class="bar gr"><i style="width:70%"></i></div> 70%','3/5','2026-08-19 15:08']
-      ]
     });
   }
 });
@@ -162,7 +158,6 @@ page('task-a-model', {
   body: function(){
     return modulePage({
       mod: 'A-MODEL',
-      sku: 'SKU-VASE-042',
       fields: [
         fld('图片数量', pick(['3张','5张(默认)','8张'])),
         fld('画幅比例', pick(['1:1 方图','4:5 竖图','9:16 超竖'])),
@@ -172,10 +167,6 @@ page('task-a-model', {
         fld('模特年龄段', pick(['不限','18-25','25-35','35-45','45+'])),
         fld('拍摄角度', pick(['正面(默认)','侧面','3/4侧','多角度组合']))
       ],
-      tasks: [
-        ['<span class="m">TASK-A-MODEL-20260819-003</span>','SKU-VASE-042',chip('已完成','ok'),'5','2026-08-19 14:35'],
-        ['<span class="m">TASK-A-MODEL-20260819-004</span>','SKU-VASE-042','<div class="bar gr"><i style="width:85%"></i></div> 85%','4/5','2026-08-19 15:20']
-      ]
     });
   }
 });
@@ -355,78 +346,96 @@ page('task-g', {
 page('task-pipeline', {
   roles: ['*'],
   spec: {
-    q: '任务流水线详情：跨层调用链可视化，展示skip/done/now/wait四态',
-    acts: ['查看任务执行链路','识别跳过态复用','下钻到子步骤'],
+    q: '任务流水线详情：用真实台账还原跨层调用链，展示 skip/done/now/wait 四态',
+    acts: ['选择任务','查看真实执行链路','下钻到产出资产'],
     wf: ['WF-29-L4-API'],
-    reads: ['tenant_oldcat.generation_ledger','tenant_oldcat.generated_assets'],
-    limits: ['历史任务只读，运行中任务可取消']
+    reads: ['tenant_oldcat.generation_ledger','tenant_oldcat.generated_assets','tenant_oldcat.product_identity'],
+    limits: ['链路按台账 layer/module 归组；成本明细限系统管理员查看']
   },
   guide: [
-    '流程图中<b>"已跳过·复用"</b>标签表示该阶段使用了缓存数据，未实际调用',
-    'Layer2被多次调用（如生成5张图）时展开为嵌套子步骤',
-    '点击各阶段可跳转到对应产出资产详情'
+    '链路数据来自 <b>generation_ledger</b> 真实台账，按该任务所属商品的行按层归组',
+    '某层显示「已跳过/未执行」= 台账里没有这一层的调用记录（缓存复用或该层未启用）',
+    '成本为估算值，真实费用以模型服务商账单为准'
   ],
-  body: function(){
-    return panel('任务元数据', kv([
-      ['任务ID','TASK-A-20260819-005'],
-      ['模块','模块A 场景图+模特图'],
-      ['SKU','SKU-VASE-042'],
-      ['提交时间','2026-08-19 14:52'],
-      ['完成时间','2026-08-19 14:55 (耗时3m12s)'],
-      ['总成本估算','$0.85']
-    ])) +
-    phaseFlow([
-      {no:'0',t:'产品身份确认',s:'WF-29-L0 · Product DNA',state:'skip',time:'0ms',
-        chip:skiptag('已跳过 · 复用'),
-        steps:[
-          ['skip','调用WF-29-L0','DNA缓存命中，跳过','0ms'],
-          ['skip','写入product_dna表','跳过','0ms']
-        ]
-      },
-      {no:'1',t:'人群画像分析',s:'WF-29-L1-COSMO · Demographics',state:'skip',time:'0ms',
-        chip:skiptag('已跳过 · 复用'),
-        steps:[
-          ['skip','调用WF-29-L1-COSMO','COSMO缓存命中','0ms'],
-          ['skip','写入cosmo_profile表','跳过','0ms']
-        ]
-      },
-      {no:'2',t:'模块A业务编排',s:'场景图+模特图prompt构建',state:'done',time:'850ms',
-        chip:chip('已完成','ok'),
-        steps:[
-          ['done','读取Product DNA','从缓存加载','120ms'],
-          ['done','读取COSMO Profile','从缓存加载','95ms'],
-          ['done','构建prompt（5张图）','IA6参数应用','635ms']
-        ]
-      },
-      {no:'3',t:'Layer2统一生图引擎',s:'Gemini 2.5-flash · 5次调用',state:'done',time:'68.2s',
-        chip:chip('5/5','ok'),
-        steps:[
-          ['done','图1生成','prompt_A1 → asset-3f8a12','12.8s'],
-          ['done','图2生成','prompt_A2 → asset-4b9c23','13.2s'],
-          ['done','图3生成','prompt_A3 → asset-5d1e34','14.1s'],
-          ['done','图4生成','prompt_A4 → asset-6f2g45','13.5s'],
-          ['done','图5生成','prompt_A5 → asset-7h3i56','14.6s']
-        ]
-      },
-      {no:'4',t:'资产入库与通知',s:'写generated_assets表',state:'done',time:'420ms',
-        chip:chip('已完成','ok'),
-        steps:[
-          ['done','批量写入assets表','5条记录','280ms'],
-          ['done','更新ledger台账','cost=$0.85','85ms'],
-          ['done','发送完成通知','飞书消息','55ms']
-        ]
+  body: async function(){
+    var tr = await L4.fetch('product.task', {limit: 200});
+    if (!tr.success) return callout('warn', '数据加载失败', tr.error || '未知错误');
+    var tasks = tr.data || [];
+    if (!tasks.length) return ghost('暂无任务记录，先跑一次生成模块后回来查看');
+
+    var cur = sessionStorage.getItem('vf_cur_task') || '';
+    var task = null;
+    for (var i = 0; i < tasks.length; i++) { if (String(tasks[i].id) === String(cur)) { task = tasks[i]; break; } }
+    if (!task) task = tasks[0];
+
+    var opts = tasks.slice(0, 100).map(function(t){
+      return '<option value="' + t.id + '"' + (String(t.id) === String(task.id) ? ' selected' : '') + '>'
+        + (t.sku || '-') + ' / ' + (t.module || '-') + ' / ' + String(t.created_at || '').slice(0, 16) + '</option>';
+    }).join('');
+    var picker = panel('选择任务', '<select class="ctl" style="max-width:580px" onchange="window._pickTask(this.value)">' + opts + '</select>');
+
+    var meta = panel('任务元数据', '<div style="display:flex;gap:16px;align-items:flex-start">'
+      + thumbImg(task.thumbnail_ref, 96)
+      + '<div style="flex:1">' + kv([
+        ['任务ID', '<span class="m">' + String(task.id || '-') + '</span>'],
+        ['SKU', task.sku || '-'],
+        ['市场', task.market || '-'],
+        ['模块', task.module || '-'],
+        ['当前层级', task.layer || '-'],
+        ['状态', chip(task.status || '-', task.status === 'SUCCESS' ? 'ok' : (task.status === 'FAILED' ? 'fail' : 'warn'))],
+        ['实际模型', task.effective_model || task.requested_model || '-'],
+        ['耗时', task.duration_ms != null ? (task.duration_ms + ' ms') : '-'],
+        ['成本估算', task.cost_estimate_usd != null ? ('$' + task.cost_estimate_usd) : '（需系统管理员权限）'],
+        ['提交时间', String(task.created_at || '-').slice(0, 19)],
+        ['错误原因', task.error_message || '-']
+      ]) + '</div></div>');
+
+    var lr = await L4.fetch('ledger.list', {limit: 200});
+    if (!lr.success) return picker + meta + callout('', '链路明细未开放给当前角色',
+      '成本台账明细限<b>系统管理员</b>查看。当前角色可见任务元数据与产出资产，链路视图请用系统管理员账号登录。');
+
+    var all = lr.data || [];
+    var rows = all.filter(function(r){ return String(r.product_identity_id || '') === String(task.product_identity_id || ''); });
+    if (!rows.length) return picker + meta + ghost('该商品名下暂无台账明细（可能只跑了识别层，或本次调用未记台账）');
+
+    function sumOf(list, k){ var s = 0; for (var q = 0; q < list.length; q++) { s += Number(list[q][k] || 0); } return s; }
+    function stOf(list){
+      var hf = false, hr = false, ho = false;
+      for (var q = 0; q < list.length; q++) {
+        var s = String(list[q].status || '');
+        if (s === 'FAILED' || s === 'PARTIAL') { hf = true; } else if (s === 'SUCCESS') { ho = true; } else { hr = true; }
       }
-    ]) +
-    panel('产出资产', table(
-      ['资产ID','类型','模型','耗时','成本','操作'],
-      [
-        ['<span class="m">asset-3f8a12</span>','场景图','gemini-2.5-flash','12.8s','$0.17',btn('查看','btn--ghost',"location.hash='asset-detail'")],
-        ['<span class="m">asset-4b9c23</span>','场景图','gemini-2.5-flash','13.2s','$0.17',btn('查看','btn--ghost',"location.hash='asset-detail'")],
-        ['<span class="m">asset-5d1e34</span>','模特图','gemini-2.5-flash','14.1s','$0.17',btn('查看','btn--ghost',"location.hash='asset-detail'")],
-        ['<span class="m">asset-6f2g45</span>','模特图','gemini-2.5-flash','13.5s','$0.17',btn('查看','btn--ghost',"location.hash='asset-detail'")],
-        ['<span class="m">asset-7h3i56</span>','场景图','gemini-2.5-flash','14.6s','$0.17',btn('查看','btn--ghost',"location.hash='asset-detail'")]
-      ]
-    ));
+      if (hf) return 'fail';
+      if (hr) return 'run';
+      if (ho) return 'done';
+      return 'wait';
+    }
+    function mk(no, t, s, list){
+      var st = stOf(list);
+      var badge = st === 'done' ? chip(list.length + ' 次调用', 'ok')
+                : st === 'fail' ? chip('失败', 'fail')
+                : st === 'run' ? chip('进行中', 'warn') : chip('未执行', 'neutral');
+      var steps = list.map(function(r){
+        return [st, String(r.effective_model || r.requested_model || r.layer || '-'),
+          String(r.status || '') + (r.fallback_reason ? (' / ' + r.fallback_reason) : ''),
+          (r.duration_ms != null ? (r.duration_ms + 'ms') : '') + (r.cost_estimate_usd != null ? (' / $' + r.cost_estimate_usd) : '')];
+      });
+      if (!steps.length) steps = [['wait', '该层无调用记录', '台账中没有这一层（缓存复用或未启用）', '-']];
+      return { no: no, t: t, s: s, state: st, time: list.length ? (sumOf(list, 'duration_ms') + ' ms') : '-', chip: badge, steps: steps };
+    }
+    function byLayer(l){ return rows.filter(function(r){ return String(r.layer || '') === l; }); }
+    function byModule(m){ return rows.filter(function(r){ return String(r.module || '') === m; }); }
+
+    var stages = [];
+    stages.push(mk('0', '产品身份确认', 'WF-29-L0 / Product DNA', byLayer('LAYER0')));
+    stages.push(mk('1', '人群画像分析', 'WF-29-L1-COSMO', byLayer('LAYER1_COSMO')));
+    stages.push(mk('1', '竞品情报采集', 'WF-29-L1-SORFTIME', byLayer('LAYER1_SORFTIME')));
+    stages.push(mk('2', '业务模块编排', String(task.module || '业务模块'), byModule(String(task.module || ''))));
+    stages.push(mk('3', 'Layer2 统一生图引擎', '统一生图引擎 / 实际出图', byLayer('LAYER2')));
+
+    return picker + meta + phaseFlow(stages)
+      + callout('', '口径说明', '链路按 generation_ledger 真实台账还原：「未执行」= 台账无该层记录，'
+        + '「进行中」= 该层有未完成调用，「失败」= 含 FAILED/PARTIAL 行。成本为估算值。');
   }
 });
 
