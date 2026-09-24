@@ -274,7 +274,7 @@ table.t .dim{color:var(--t-4)}
 /* 表格外壳 */
 .tw{
   background:#fff;border:1px solid var(--line);border-radius:var(--r-card);
-  box-shadow:var(--sh-1);margin-bottom:16px;overflow:hidden;
+  box-shadow:var(--sh-1);margin-bottom:16px;overflow-x:auto;overflow-y:hidden;
 }
 .tb + .tw{border-radius:0 0 var(--r-card) var(--r-card);border-top:none}
 .pnl__bd .tw{border:none;border-radius:0;box-shadow:none;margin-bottom:0}
