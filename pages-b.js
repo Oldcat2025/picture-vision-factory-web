@@ -372,9 +372,23 @@ page('task-f-preview', {
     try { cur = sessionStorage.getItem('vf_aplus_pid') || ''; } catch(e){}
     var prod = null;
     for (var i = 0; i < prods.length; i++) { if (String(prods[i].id) === String(cur)) { prod = prods[i]; break; } }
+    if (!prod) {
+      /* 默认优先选「已有 A+ 素材」的商品 —— 否则一进页面就是一堆「未生成」占位，像坏了 */
+      try {
+        var probe = await L4.fetch('assets.list', {module: 'F_APLUS', limit: 200});
+        if (probe.success && (probe.data || []).length) {
+          var havePid = [];
+          (probe.data || []).forEach(function(a){
+            var pv = String(a.product_identity_id || '');
+            if (pv && havePid.indexOf(pv) < 0) havePid.push(pv);
+          });
+          for (var j = 0; j < prods.length; j++) {
+            if (havePid.indexOf(String(prods[j].id)) >= 0) { prod = prods[j]; break; }
+          }
+        }
+      } catch (e) {}
+    }
     if (!prod) prod = prods[0];
-
-    var ar = await L4.fetch('assets.list', {product_identity_id: prod.id, module: 'F_APLUS', limit: 100});
     if (!ar.success) return callout('warn', '素材加载失败', ar.error || '未知错误');
     var assets = ar.data || [];
 

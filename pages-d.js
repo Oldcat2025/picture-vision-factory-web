@@ -401,42 +401,55 @@ window._admDelete = async function(un){
 page('adm-audit', {
   roles: ['系统管理员'],
   spec: {
-    q: '操作审计日志：配置变更/资产引用/DNA刷新/凭证变更记录',
-    acts: ['按时间/操作人/类型筛选','导出审计日志'],
+    q: '操作审计日志：配置变更/资产引用/DNA刷新/凭证变更/访问被拒记录',
+    acts: ['按时间/操作人/类型筛选','搜索操作对象与详情','导出审计日志'],
     wf: ['WF-29-L4-API'],
     reads: ['tenant_oldcat.audit_log'],
     limits: ['保留最近90天日志，更早的归档到对象存储；敏感操作（凭证变更/权限变更）永久保留（02文档§9.7）']
   },
+  guide: [
+    '操作类型已按<b>实际动作</b>分类：拒绝访问归「访问被拒」，不再混进「权限变更」',
+    '三个筛选项可组合使用（搜索框对操作人/对象/详情/类型中文名做全文匹配）',
+    '<b>访问被拒</b>通常是未登录或权限不足的调用被后端拦下，属正常防护记录'
+  ],
   body: async function(){
-    var r = await L4.fetch('admin.audit.list', {limit:100});
+    var r = await L4.fetch('admin.audit.list', {limit: 200});
     if (!r.success) return callout('warn', '数据加载失败', r.error || '未知错误');
     var rows = r.data || [];
-    var toneMap = {'配置修改':'warn','资产引用':'ok','DNA强制刷新':'neutral','凭证变更':'fail','用户登录':'ok','权限变更':'fail'};
-    var data = rows.map(function(row){
-      return [
-        row.occurred_at ? String(row.occurred_at).slice(0,16) : '-',
-        row.actor || '-',
-        chip(row.action_type || '-', toneMap[row.action_type] || 'neutral'),
-        row.target || '-',
-        row.detail || '-',
-        row.ip_address || '-'
-      ];
+    window.__auditRaw = rows;
+    var actors = [];
+    var typesInData = [];
+    rows.forEach(function(x){
+      var a = String(x.actor || '-');
+      if (actors.indexOf(a) < 0) actors.push(a);
+      if (typesInData.indexOf(x.action_type) < 0) typesInData.push(x.action_type);
     });
-    return toolbar(
-      [
-        inp('搜索操作对象...'),
-        sel('操作类型',['全部','配置修改','资产引用','DNA强制刷新','凭证变更','用户登录','权限变更']),
-        sel('操作人',['全部','xixd','oldcat','prod_regress'])
-      ],
-      [btn('导出CSV','btn--ghost',"window._exportCsv()")]
-    ) +
-    table(
+    actors.sort();
+    typesInData.sort();
+    var typeOpts = ['<option value="">全部类型</option>'].concat(typesInData.map(function(t){
+      var zh = (window.AUDIT_ZH[t] || {}).zh || t;
+      return '<option value="' + t + '">' + zh + '</option>';
+    })).join('');
+    var actorOpts = ['<option value="">全部操作人</option>'].concat(actors.map(function(a){
+      return '<option value="' + a + '">' + a + '</option>';
+    })).join('');
+    var bar = '<div class="tb"><div class="flt">'
+      + '<input class="inp" id="auditQ" placeholder="搜索操作人/对象/详情..." oninput="window._auditApply()">'
+      + '<select class="sel" id="auditType" onchange="window._auditApply()">' + typeOpts + '</select>'
+      + '<select class="sel" id="auditActor" onchange="window._auditApply()">' + actorOpts + '</select>'
+      + '</div><div class="btnrow" style="margin:0;align-items:center">'
+      + '<span id="auditCount" style="font-size:12.5px;color:var(--t-3);margin-right:8px"></span>'
+      + '<button class="btn btn--ghost" onclick="window._exportCsv()">导出CSV</button>'
+      + '</div></div>';
+    var html = bar + table(
       ['时间','操作人','操作类型','操作对象','详情','IP地址'],
-      data.length ? data : [['<span class="ghost">暂无审计日志</span>','','','','','']]
-    ) +
-    callout('','审计日志保留策略',
-      '最近90天日志保留在PostgreSQL以供快速查询，更早的日志归档到Zeabur对象存储（90天-2年）。敏感操作（凭证变更/权限变更）永久保留。'
-    );
+      []
+    ).replace('<tbody></tbody>', '<tbody>' + window.__auditRowHtml(rows) + '</tbody>')
+      + callout('','审计日志保留策略',
+        '最近90天日志保留在PostgreSQL以供快速查询，更早的日志归档到Zeabur对象存储（90天-2年）。敏感操作（凭证变更/权限变更）永久保留。'
+        + '<br><b>类型说明：</b>「访问被拒」= 未登录/权限不足被后端拦下（正常防护）；「操作失败」= 业务执行失败。');
+    setTimeout(function(){ window._auditApply(); }, 0);
+    return html;
   }
 });
 

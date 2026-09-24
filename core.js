@@ -652,6 +652,51 @@ window._syncMarket = async function(){
 };
 
 /* ─── A+ 页面预览拼装：产品选择 / 通道切换 / 导出 HTML ─── */
+/* ─── 操作审计：类型中文映射 + 客户端筛选（原页面显示英文枚举、筛选下拉无 onchange 属装饰）─── */
+window.AUDIT_ZH = {
+  CONFIG_CHANGE:{zh:'配置修改',tone:'warn'}, ASSET_REFERENCE:{zh:'资产引用',tone:'ok'},
+  DNA_FORCE_REFRESH:{zh:'DNA强制刷新',tone:'neutral'}, CREDENTIAL_CHANGE:{zh:'凭证变更',tone:'fail'},
+  ENGINE_CONFIG_CHANGE:{zh:'引擎配置',tone:'warn'}, USER_LOGIN:{zh:'用户登录',tone:'ok'},
+  USER_LOGOUT:{zh:'用户登出',tone:'neutral'}, USER_SESSION:{zh:'会话查询',tone:'neutral'},
+  PERMISSION_CHANGE:{zh:'权限变更',tone:'fail'}, ACCESS_DENIED:{zh:'访问被拒',tone:'fail'},
+  LISTING_CHANGE:{zh:'上架变更',tone:'run'}, GENERATION_SUBMIT:{zh:'生图提交',tone:'run'},
+  OPERATION_FAILED:{zh:'操作失败',tone:'fail'}, OTHER:{zh:'其他',tone:'neutral'}
+};
+window.__auditRaw = [];
+window.__auditRowHtml = function(rows){
+  if (!rows.length) return '<tr><td colspan="6"><span class="ghost">没有符合条件的记录</span></td></tr>';
+  return rows.map(function(row){
+    var m = window.AUDIT_ZH[row.action_type] || {zh: row.action_type || '-', tone: 'neutral'};
+    return '<tr>'
+      + '<td>' + ledgerEscape(String(row.occurred_at || '-').slice(0,16).replace('T',' ')) + '</td>'
+      + '<td>' + ledgerEscape(row.actor || '-') + '</td>'
+      + '<td>' + chip(m.zh, m.tone) + '</td>'
+      + '<td>' + ledgerEscape(row.target || '-') + '</td>'
+      + '<td>' + ledgerEscape(String(row.detail || '-').slice(0,120)) + '</td>'
+      + '<td>' + ledgerEscape(row.ip_address || '-') + '</td>'
+      + '</tr>';
+  }).join('');
+};
+window._auditApply = function(){
+  var q = String((document.getElementById('auditQ') || {}).value || '').toLowerCase().trim();
+  var ty = String((document.getElementById('auditType') || {}).value || '');
+  var ac = String((document.getElementById('auditActor') || {}).value || '');
+  var all = window.__auditRaw || [];
+  var hit = all.filter(function(row){
+    if (ty && row.action_type !== ty) return false;
+    if (ac && String(row.actor || '') !== ac) return false;
+    if (q) {
+      var hay = [row.actor, row.target, row.detail, (window.AUDIT_ZH[row.action_type] || {}).zh || ''].join(' ').toLowerCase();
+      if (hay.indexOf(q) < 0) return false;
+    }
+    return true;
+  });
+  var tb = document.querySelector('#page table tbody');
+  if (tb) tb.innerHTML = window.__auditRowHtml(hit);
+  var cnt = document.getElementById('auditCount');
+  if (cnt) cnt.textContent = '显示 ' + hit.length + ' / ' + all.length + ' 条';
+};
+
 window._pickAplusProduct = function(id){ try { sessionStorage.setItem('vf_aplus_pid', String(id||'')); } catch(e){} location.reload(); };
 window._setAplusChannel = function(ch){ try { sessionStorage.setItem('vf_aplus_ch', String(ch||'desktop')); } catch(e){} location.reload(); };
 window._exportAplusHtml = function(){
