@@ -377,13 +377,17 @@ page('task-f-preview', {
       try {
         var probe = await L4.fetch('assets.list', {module: 'F_APLUS', limit: 200});
         if (probe.success && (probe.data || []).length) {
-          var havePid = [];
+          var score = {};
           (probe.data || []).forEach(function(a){
             var pv = String(a.product_identity_id || '');
-            if (pv && havePid.indexOf(pv) < 0) havePid.push(pv);
+            if (!pv) return;
+            if (!score[pv]) score[pv] = {};
+            score[pv][String(a.image_type || '')] = 1;
           });
+          var best = '', bestN = 0;
+          for (var pk in score) { var pn = Object.keys(score[pk]).length; if (pn > bestN) { bestN = pn; best = pk; } }
           for (var j = 0; j < prods.length; j++) {
-            if (havePid.indexOf(String(prods[j].id)) >= 0) { prod = prods[j]; break; }
+            if (String(prods[j].id) === String(best)) { prod = prods[j]; break; }
           }
         }
       } catch (e) {}
