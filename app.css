@@ -90,11 +90,6 @@ a{color:inherit;text-decoration:none}
 }
 .tab:hover{color:var(--mo-600)}
 .tab.on{color:var(--mo-600);font-weight:600;border-bottom-color:var(--mo-600)}
-.tab .dot{
-  margin-left:5px;font-size:10px;background:var(--amber-bg);color:var(--amber);
-  padding:1px 5px;border-radius:var(--r-pill);font-weight:500;
-}
-
 .nav__rt{display:flex;align-items:center;gap:10px;flex:0 0 auto}
 .search{
   display:flex;align-items:center;gap:7px;

@@ -343,8 +343,14 @@ page('task-g', {
     '</div>') +
     '<div class="btnrow">'+btn('提交生成',null,"window._submitImage('G','图案生成')")+btn('保存本机配置','btn--ghost',"window._saveDraft()")+btn('恢复配置','btn--ghost',"window._loadDraft()")+'</div>' +
     panel('最近任务', table(
-      ['任务ID','状态','实际模型','成本','提交时间'],
-      (recent.data||[]).map(function(x){return [x.id,x.status,x.effective_model,x.cost_estimate_usd,x.created_at].map(ledgerEscape);})
+      ['缩略图','任务ID','状态','实际模型','成本','提交时间'],
+      (function(){
+        var rows = (recent.data||[]).map(function(x){
+          return [thumbImg(x.thumbnail_ref, 40), ledgerEscape(x.id), ledgerEscape(x.status),
+                  ledgerEscape(x.effective_model), ledgerEscape(x.cost_estimate_usd), ledgerEscape(x.created_at)];
+        });
+        return rows.length ? rows : [['<span class="ghost">暂无任务，提交后显示</span>','','','','','']];
+      })()
     ));
   }
 });

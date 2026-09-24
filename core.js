@@ -928,9 +928,7 @@ function firstAllowedOf(g){
 function renderTabs(cur){
   document.getElementById('groupTabs').innerHTML = NAV.map(function(g){
     var on  = (g === cur.g) ? ' on' : '';
-    var vis = groupVisibleCount(g);
-    var dot = (vis === 0) ? '<span class="dot">无权限</span>' : '';
-    return '<div class="tab'+on+'" data-g="'+g.k+'">'+g.t+dot+'</div>';
+    return '<div class="tab'+on+'" data-g="'+g.k+'">'+g.t+'</div>';
   }).join('');
   Array.prototype.forEach.call(document.querySelectorAll('.tab[data-g]'), function(el){
     el.onclick = function(){
