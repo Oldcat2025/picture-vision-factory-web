@@ -282,6 +282,7 @@ page('pid-dna', {
         ['品类轨道', chip(id.product_category_track || 'GENERIC_PRODUCT', 'neutral')],
         ['DNA状态', chip(id.dna_status || '-', 'neutral')],
         ['QC结果', chip(pd.qc_result || '-', qcTone)],
+    ['QC一致性', pd.qc_consistency ? (chip(pd.qc_consistency, pd.qc_consistency === 'PASS' ? 'ok' : 'err') + ' <span class="sub">剥离 ' + (((pd.qc_consistency_detail||{}).enforced_count)||0) + ' 处 · 复验残留 ' + ((((pd.qc_consistency_detail||{}).residual)||[]).length) + ' 项</span>') : '<span class="sub">本次 QC 无「点名移除」的声明，无需一致性校验</span>'],
         ['QC模型', chip(pd.qc_model || '-', 'neutral')],
         ['最后更新', String(id.dna_analyzed_at || id.updated_at || '-').slice(0,16)]
       ])) +
