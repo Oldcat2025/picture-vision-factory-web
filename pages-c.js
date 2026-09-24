@@ -177,7 +177,7 @@ page('ledger-breakdown', {
     '按Layer拆分回答<b>"哪层最贵"</b>：Layer2生图引擎通常占70%+成本',
     '对照请求模型、实际模型和降级次数，判断路由变化；GPT调用本身不等于发生降级',
     '点击单元格数字可下钻到该维度的具体调用记录',
-    '<b>输入/输出 tokens</b>为模型返回的真实用量；L0/L1 的模型调用按 token 计价，L2 生图按张计价（无 token）'
+    '<b>tokens(入/出)</b>为模型返回的真实用量；L0/L1 的模型调用按 token 计价，L2 生图按张计价（故 L2 显示 0 / 0）'
   ],
   body: async function(){
     var r = await L4.fetch('ledger.breakdown', ledgerMonth());
@@ -200,10 +200,10 @@ page('ledger-breakdown', {
       var fr = c ? ((c - ok) / c * 100).toFixed(1) + '%' : '0%';
       var avg = c ? Math.round((Number(m.total_duration_ms) || 0) / c) + 'ms' : '-';
       var link='<button class="btn btn--ghost" onclick="window._ledgerDetails('+[m.module,m.layer,m.effective_model].map(function(x){return ledgerEscape(JSON.stringify(x||''));}).join(',')+')">'+c+'</button>';
-      return [ledgerEscape(m.module),ledgerEscape(m.layer),ledgerEscape(m.requested_model),ledgerEscape(m.effective_model),link,String(m.fallback_count||0), '$' + cost.toFixed(2), share, avg, String(m.total_prompt_tokens||0), String(m.total_completion_tokens||0)];
+      return [ledgerEscape(m.module),ledgerEscape(m.layer),ledgerEscape(m.requested_model),ledgerEscape(m.effective_model),link,String(m.fallback_count||0), '$' + cost.toFixed(2), share, avg, String(m.total_prompt_tokens||0) + ' / ' + String(m.total_completion_tokens||0)];
     });
     return panel('本月层级 / 模型拆分', table(
-      ['模块','层级','请求模型','实际模型','调用次数','路由变化','总成本','成本占比','平均耗时','输入tokens','输出tokens'],
+      ['模块','层级','请求模型','实际模型','调用次数','路由变化','总成本','成本占比','平均耗时','tokens(入/出)'],
       tr
     ), {note: '共 ' + totalCalls + ' 次调用 · 总成本 $' + totalCost.toFixed(2) + ' · 点击调用次数查看记录'})+'<div id="ledgerDetails"></div>';
   }
