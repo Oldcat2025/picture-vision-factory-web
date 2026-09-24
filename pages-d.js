@@ -646,7 +646,7 @@ page('track-publish', {
     var gap = (rows.length && noAsin)
       ? callout('warn', noAsin + ' 条登记还没填 ASIN（本商品真实 ASIN）',
           '这些记录只能作为「已上架」的登记，<b>无法进入 8.2「按 ASIN 同步市场数据」</b>——同步是按 ASIN 去抓价格/评分/评论数的。'
-          + '<br>补齐入口：回到本页重新登记一条（填 ASIN + Listing 链接），或在 n8n 侧补数据。'
+          + '<br>补齐入口：回到本页重新登记一条（填 ASIN + Listing 链接），或联系系统管理员在后台补数据。'
           + '<br><b>注意</b>：竞品参照 ASIN 不能当成本商品 ASIN 登记，两者含义不同。')
       : '';
     return toolbar(
