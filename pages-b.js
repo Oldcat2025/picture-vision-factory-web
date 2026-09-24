@@ -12,7 +12,7 @@ async function dnaCallout(sku){
   }
   if (st === 'ANALYZING' || st === 'PENDING' || st === '') {
     return callout('','首次生成，将先分析产品身份',
-      '<b>'+sku+'</b> 尚无 Product DNA 记录。提交后会依次调用：<br>① WF-29-L0 产品身份确认<br>② WF-29-L1-COSMO 人群画像<br>③ 本模块生成任务');
+      '<b>'+sku+'</b> 尚无 Product DNA 记录。提交后会依次完成：<br>① 产品身份确认（AI 读图识别）<br>② 人群画像分析<br>③ 本模块生成任务');
   }
   return callout('warn','DNA 状态需关注',
     '<b>'+sku+'</b> 的 DNA 状态为 <b>'+st+'</b>，请确认是否需要强制刷新。');
@@ -113,9 +113,9 @@ async function modulePage(opts){
 page('task-a-scene', {
   roles: ['*'],
   spec: {
-    q: '模块A 场景图生成（源自项目02 场景图部分）',
+    q: '模块A 场景图生成',
     acts: ['选择SKU','配置场景参数','提交任务'],
-    wf: ['WF-29-L0（首次SKU）','WF-29-L1-COSMO','模块A场景图工作流（源自02）','WF-29-L2-ENGINE'],
+    wf: ['WF-29-L0（首次SKU）','按目标人群建模','模块A场景图工作流（源自02）','WF-29-L2-ENGINE'],
     reads: ['tenant_oldcat.product_identity','tenant_oldcat.product_dna','tenant_oldcat.cosmo_profile'],
     writes: ['tenant_oldcat.generated_assets'],
     limits: ['COSMO模式需Layer1完成，参考图模式可跳过']
@@ -143,9 +143,9 @@ page('task-a-scene', {
 page('task-a-model', {
   roles: ['*'],
   spec: {
-    q: '模块A 模特图生成（源自项目02 模特图部分）',
+    q: '模块A 模特图生成',
     acts: ['选择SKU','配置模特IA6参数','提交任务'],
-    wf: ['WF-29-L0（首次SKU）','WF-29-L1-COSMO','模块A模特图工作流（源自02）','WF-29-L2-ENGINE'],
+    wf: ['WF-29-L0（首次SKU）','按目标人群建模','模块A模特图工作流（源自02）','WF-29-L2-ENGINE'],
     reads: ['tenant_oldcat.product_identity','tenant_oldcat.product_dna','tenant_oldcat.cosmo_profile'],
     writes: ['tenant_oldcat.generated_assets'],
     limits: ['模特人设表(IA6)驱动，地区/体型/年龄段可从COSMO推断']
@@ -174,9 +174,9 @@ page('task-a-model', {
 page('task-b', {
   roles: ['*'],
   spec: {
-    q: '模块B Listing全套图生成（源自项目06）',
+    q: '模块B Listing全套图生成',
     acts: ['选择SKU','配置输出通道','提交任务'],
-    wf: ['WF-29-L0','WF-29-L1-COSMO','模块B自身工作流（源自06）','WF-29-L2-ENGINE'],
+    wf: ['WF-29-L0','按目标人群建模','模块B自身工作流（源自06）','WF-29-L2-ENGINE'],
     reads: ['tenant_oldcat.product_dna','tenant_oldcat.cosmo_profile'],
     writes: ['tenant_oldcat.generated_assets'],
     limits: ['桌面+手机双通道会生成两套完整资产包']
@@ -197,9 +197,9 @@ page('task-b', {
 page('task-c', {
   roles: ['*'],
   spec: {
-    q: '模块C TikTok Shop全套图生成（源自项目07）',
+    q: '模块C TikTok Shop全套图生成',
     acts: ['选择SKU','配置输出模式','提交任务'],
-    wf: ['WF-29-L0','WF-29-L1-COSMO','模块C自身工作流（源自07）','WF-29-L2-ENGINE'],
+    wf: ['WF-29-L0','按目标人群建模','模块C自身工作流（源自07）','WF-29-L2-ENGINE'],
     reads: ['tenant_oldcat.product_dna','tenant_oldcat.cosmo_profile'],
     writes: ['tenant_oldcat.generated_assets'],
     limits: ['shop_square与feed_vertical两模式画幅不同']
@@ -220,7 +220,7 @@ page('task-c', {
 page('task-d', {
   roles: ['*'],
   spec: {
-    q: '模块D 主图合规器（源自项目17-A）：输入任意棚拍图，输出合规主图',
+    q: '模块D 主图合规器：输入任意棚拍图，输出合规主图',
     acts: ['上传棚拍图','设定合规阈值','提交检测'],
     wf: ['模块D自身工作流（源自17-A）','WF-29-L2-ENGINE(不合规时重生成)'],
     reads: [],
@@ -262,9 +262,9 @@ page('task-d', {
 page('task-e', {
   roles: ['*'],
   spec: {
-    q: '模块E TEMU半托管详情图生成（源自项目19）',
+    q: '模块E TEMU半托管详情图生成',
     acts: ['选择SKU','配置AI披露合规开关','提交任务'],
-    wf: ['WF-29-L0','WF-29-L1-COSMO','模块E自身工作流（源自19）','WF-29-L2-ENGINE'],
+    wf: ['WF-29-L0','按目标人群建模','模块E自身工作流（源自19）','WF-29-L2-ENGINE'],
     reads: ['tenant_oldcat.product_dna','tenant_oldcat.cosmo_profile'],
     writes: ['tenant_oldcat.generated_assets'],
     limits: ['品类轨道自动检测触发不同模板']
@@ -285,9 +285,9 @@ page('task-e', {
 page('task-f', {
   roles: ['*'],
   spec: {
-    q: '模块F A+页面创意设计（源自项目22）',
+    q: '模块F A+页面创意设计',
     acts: ['选择SKU','选定主题','配置Lifestyle素材来源','提交任务'],
-    wf: ['WF-29-L0','WF-29-L1-COSMO','模块F自身工作流（源自22）','WF-29-L2-ENGINE'],
+    wf: ['WF-29-L0','按目标人群建模','模块F自身工作流（源自22）','WF-29-L2-ENGINE'],
     reads: ['tenant_oldcat.product_dna','tenant_oldcat.cosmo_profile','tenant_oldcat.theme_config'],
     writes: ['tenant_oldcat.generated_assets'],
     limits: ['T-CUSTOM自定义主题需上传参考图']
@@ -312,7 +312,7 @@ page('task-f', {
 page('task-g', {
   roles: ['*'],
   spec: {
-    q: '模块G 家居图案创意设计（源自项目21）：独立耦合，不依赖SKU身份',
+    q: '模块G 家居图案创意设计：独立耦合，不依赖SKU身份',
     acts: ['上传参考图','配置原创度与拓展策略','提交任务'],
     wf: ['模块G自身工作流（源自21）','WF-29-L2-ENGINE'],
     reads: [],
@@ -359,7 +359,7 @@ page('task-g', {
 page('task-f-preview', {
   roles: ['*'],
   spec: {
-    q: 'A+ 页面预览拼装：按 A+ 五模块漏斗顺序把已生成的模块图拼成可预览、可导出的 HTML（01 PRD §7.4.6）',
+    q: 'A+ 页面预览拼装：按 A+ 五模块漏斗顺序把已生成的模块图拼成可预览、可导出的 HTML',
     acts: ['选择产品','切换桌面/手机通道','查看缺失模块','导出 HTML'],
     wf: ['WF-29-L4-API'],
     reads: ['tenant_oldcat.generated_assets'],
@@ -589,9 +589,9 @@ page('task-pipeline', {
     function byModule(m){ return rows.filter(function(r){ return String(r.module || '') === m; }); }
 
     var stages = [];
-    stages.push(mk('0', '产品身份确认', 'WF-29-L0 / Product DNA', byLayer('LAYER0')));
-    stages.push(mk('1', '人群画像分析', 'WF-29-L1-COSMO', byLayer('LAYER1_COSMO')));
-    stages.push(mk('1', '竞品情报采集', 'WF-29-L1-SORFTIME', byLayer('LAYER1_SORFTIME')));
+    stages.push(mk('0', '产品身份确认', 'AI 读图识别产品身份', byLayer('LAYER0')));
+    stages.push(mk('1', '人群画像分析', '按目标人群建模', byLayer('LAYER1_COSMO')));
+    stages.push(mk('1', '竞品情报采集', '采集竞品评论与市场数据', byLayer('LAYER1_SORFTIME')));
     stages.push(mk('2', '业务模块编排', String(task.module || '业务模块'), byModule(String(task.module || ''))));
     stages.push(mk('3', 'Layer2 统一生图引擎', '统一生图引擎 / 实际出图', byLayer('LAYER2')));
 

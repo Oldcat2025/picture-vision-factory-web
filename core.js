@@ -633,7 +633,7 @@ window._abCreate = async function(){
 };
 
 /* ─── 上线跟踪：手工录入周表现快照（source=MANUAL_ENTRY） ───
-   说明：原「自动对接项目24」方案已取消；后续改为按 ASIN 由 SORFTIME 同步市场侧数据。当前提供手工录入通道。
+   说明：市场侧数据改为按 ASIN 自动同步（价格/评分/评论数）。当前先提供手工录入通道。
    表 listing_performance_snapshot.source 只允许 SORFTIME_SYNC / MANUAL_ENTRY。 */
 /* ─── 上线跟踪：按 ASIN 从 SORFTIME 同步市场侧数据（方案A） ───
    只同步 SORFTIME 能提供的字段（价格/评分/评论数/标题）；
@@ -1014,7 +1014,16 @@ async function render(){
         '本页只对 '+(def.roles||[]).join(' / ')+' 开放。这不只是把按钮藏起来--服务器会拒绝请求，数据库也有约束兜底。想对比不同角色看到什么，换右上角的角色。');
 
   document.getElementById('page').innerHTML = head + body;
-  renderSpec(def, nv);
+  /* 页面规格面板含内部实现细节（工作流名 / 数据表名），只对系统管理员开放：
+     非管理员连按钮都不显示，且面板内容也不写入（防止 devtools 强行打开看到内部信息） */
+  var specBtnEl = document.getElementById('specBtn');
+  if (specBtnEl) specBtnEl.style.display = (ROLE === '系统管理员') ? '' : 'none';
+  if (ROLE === '系统管理员') {
+    renderSpec(def, nv);
+  } else {
+    var specBodyEl = document.getElementById('specBody');
+    if (specBodyEl) specBodyEl.innerHTML = '<p style="color:var(--t-3)">页面规格面板仅对系统管理员开放。</p>';
+  }
   window.scrollTo(0, 0);
   lazyLoadThumbs();
 }

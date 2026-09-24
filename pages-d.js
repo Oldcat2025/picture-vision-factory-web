@@ -83,8 +83,8 @@ page('cfg-ia6', {
     limits: ['配置变更立即生效，无需重启n8n']
   },
   guide: [
-    'IA6人设是模块A/E生成模特图时的<b>权威参照</b>（02文档§4.1）',
-    'height_ratio头身比与BMI范围需真实可信（参考项目19验证数据）',
+    'IA6人设是模块A/E生成模特图时的<b>权威参照</b>',
+    '身高头身比与 BMI 范围需真实可信（取行业实测数据）',
     '新增配置后建议用模块A跑测试任务验证效果'
   ],
   body: async function(){
@@ -120,7 +120,7 @@ page('cfg-theme', {
     ) +
     cfgTable(rows, '暂无主题配置') +
     callout('','主题包约束',
-      '主题包的<b>三色hex/big_title_hook/badge</b>是模块F prompt的权威输入（02文档§4.2）。变更后需用模块F跑测试验证A+页面生成效果。T-CUSTOM需用户上传参考图。'
+      '主题包的<b>三色hex/big_title_hook/badge</b>是模块F prompt的权威输入。变更后需用模块F跑测试验证A+页面生成效果。T-CUSTOM需用户上传参考图。'
     );
   }
 });
@@ -145,7 +145,7 @@ page('cfg-brand', {
     ) +
     cfgTable(rows, '暂无黑名单品牌') +
     callout('','黑名单匹配逻辑',
-      'WF-29-L0在构建prompt前会过滤黑名单品牌（不区分大小写、支持多词组合如"Crate & Barrel"）。命中后该品牌从卖点池移除，不会出现在最终prompt。'
+      '系统在构建提示词前会过滤黑名单品牌（不区分大小写、支持多词组合如"Crate & Barrel"）。命中后该品牌从卖点池移除，不会出现在最终prompt。'
     );
   }
 });
@@ -187,7 +187,7 @@ page('cfg-sensitivity', {
   },
   guide: [
     '敏感品类规则是<b>商业合规的最后防线</b>，变更需系统管理员权限',
-    'trigger_keyword使用<b>word-boundary匹配</b>（\\b边界），防"bra"误命中"embrace"（03文档T7历史bug）',
+    'trigger_keyword使用<b>word-boundary匹配</b>（\\b边界），防"bra"误命中"embrace"（历史踩坑）',
     '规则命中后强制路由到指定模型（如Gemini 3-pro-image-preview）并记录audit log'
   ],
   body: async function(){
@@ -216,7 +216,7 @@ page('cfg-sensitivity', {
       data.length ? data : [['<span class="ghost">暂无敏感品类规则</span>','','','','']]
     ) +
     callout('','历史bug复盘',
-      '03文档T7记录：早期版本用substring匹配"bra"误命中"embrace"标题，导致正常抱枕走内衣合规路由。当前版本已升级为word-boundary匹配（\\b边界），UI强提醒配置者理解此约束。'
+      '历史踩坑记录：早期版本用 substring 匹配"bra"误命中"embrace"标题，导致正常抱枕走内衣合规路由。当前版本已升级为word-boundary匹配（\\b边界），UI强提醒配置者理解此约束。'
     );
   }
 });
@@ -236,12 +236,12 @@ page('cfg-physical', {
     if (!r.success) return callout('warn', '数据加载失败', r.error || '未知错误');
     var rows = r.data || [];
     return callout('','参照物用途',
-      '模块B/E/F在生成Listing图/详情图时，会在prompt中嵌入参照物尺寸提示（如"smartphone 147×71mm for scale"），帮助AI理解产品真实大小。参照物选择参考项目07验证过的4个常见物体。'
+      '模块B/E/F在生成Listing图/详情图时，会在prompt中嵌入参照物尺寸提示（如"smartphone 147×71mm for scale"），帮助AI理解产品真实大小。参照物取行业通用、可核对的真实规格。'
     ) +
     toolbar([], [btn('新增参照物',null,"window._cfgCreate('physical')")]) +
     cfgTable(rows, '暂无参照物配置') +
     callout('','验证来源',
-      '参照物尺寸来自项目07实测验证：智能手机采用iPhone 13实际尺寸、成人手掌/头部采用人体工学平均值、信用卡采用ISO 7810标准。适用图片类型字段控制哪些模块可以引用该参照物。'
+      '参照物尺寸取行业实测规格：智能手机采用 iPhone 13 实际尺寸、成人手掌/头部采用人体工学平均值、信用卡采用ISO 7810标准。适用图片类型字段控制哪些模块可以引用该参照物。'
     );
   }
 });
@@ -257,8 +257,8 @@ page('sys-instance', {
     limits: ['只读展示，不提供一键切换高危操作（07文档§2.2.7）']
   },
   guide: [
-    '多实例架构：每个租户一个独立schema（如tenant_oldcat/tenant_littlecat），数据物理隔离',
-    '<b>不提供"一键切换实例"高危操作</b>（07文档§2.2.7明确），切换需直接修改n8n工作流的PostgreSQL节点配置',
+    '多实例架构：每个租户一套独立数据空间，数据物理隔离',
+    '<b>不提供"一键切换实例"高危操作</b>，切换属开发运维范畴，由系统管理员在后台操作',
     '本页面只做只读展示，用于排查"当前连的是哪个实例"'
   ],
   body: async function(){
@@ -273,17 +273,17 @@ page('sys-instance', {
       ];
     });
     return callout('stop','安全约束：不提供一键切换实例操作',
-      '07文档§2.2.7明确：<b>前端不提供"切换实例"按钮</b>。切换租户需直接修改n8n工作流的PostgreSQL节点schema配置，并重启工作流。'+
-      '这是高危操作（误切会污染生产数据），必须在n8n后台由开发运维人员操作，不向UI层开放。本页面<b>只做只读展示</b>。'
+      '<b>前端不提供「切换实例」按钮</b>：切换数据空间属高危操作（误切会污染生产数据），需由系统管理员在后台执行。'+
+      '这是高危操作（误切会污染生产数据），必须由系统管理员在后台操作，不向界面开放。本页面<b>只做只读展示</b>。'
     ) +
     panel('Schema 迁移记录（只读）', table(
       ['版本','应用时间','说明'],
       data.length ? data : [['<span class="ghost">暂无迁移记录</span>','','']]
     )) +
     panel('当前连接信息', kv([
-      ['当前schema','tenant_oldcat'],
-      ['PostgreSQL Host','zeabur-postgres.xxx.com'],
-      ['n8n实例','n8n-zeabur-oldcat（运行中）'],
+      ['当前数据空间','生产空间'],
+      ['数据库','托管数据库（在线）'],
+      ['自动化引擎','在线（运行中）'],
       ['最后健康检查','2026-08-19 15:10']
     ]));
   }
@@ -299,9 +299,9 @@ page('sys-cred', {
     limits: ['UI不显示明文Key/Secret，这是最后防线（07文档§2.2.7）']
   },
   guide: [
-    '凭证管理在n8n后台完成，本页面只做<b>引用关系可视化</b>',
+    '凭证管理在后台完成，本页面只做<b>引用关系可视化</b>',
     '<b>不显示明文Key/Secret</b>（显示为sk-****占位），这是UI层安全的最后防线',
-    '点击"跳转n8n凭证页"可直接打开n8n后台对应凭证编辑页（需登录权限）'
+    '如需查看或修改凭证，请由系统管理员在后台操作。'
   ],
   body: async function(){
     var r = await L4.fetch('engine.cred.list', {});
@@ -316,17 +316,17 @@ page('sys-cred', {
         '<span class="mono">' + (row.key_hint || '****') + '</span>',
         row.synced_at ? String(row.synced_at).slice(0,16).replace('T',' ') : '<span class="ghost">未同步</span>',
         chip(row.active ? '启用' : '停用', row.active ? 'ok' : 'neutral'),
-        '<button class="xbtn" onclick="window.open(\'https://oldcat.zeabur.app/credentials\',\'_blank\')">n8n 后台查看</button>'
+        '<span class="ghost">凭证查看/修改：由系统管理员在后台操作</span>'
       ];
     });
     return callout('','凭证登记总览',
       '已登记 <b>' + rows.length + '</b> 条 · 启用 <b>' + activeN + '</b> 条 · 未同步 <b>' + staleN + '</b> 条。'+
       '本页只做<b>引用可视化与脱敏展示</b>：前端<b>永不显示明文Key/Secret</b>（显示为 <code>sk-****</code> 占位）。'+
-      '这是07文档§2.2.7规定的UI层最后防线，防止屏幕录制/截图泄密。'
+      '这是界面层的最后防线，防止屏幕录制/截图泄密。'
     ) +
     toolbar(
-      [sel('凭证类型',['全部','API Key','OAuth2','PostgreSQL','MCP Server'])],
-      [btn('跳转n8n凭证页（需权限）','btn--ghost',"window.open('https://oldcat.zeabur.app/credentials','_blank')")]
+      [sel('凭证类型',['全部','API Key','OAuth2','数据库','MCP 服务'])],
+      []
     ) +
     table(
       ['提供方','模型','密钥(脱敏)','最近同步','状态','关联工作流'],
@@ -335,7 +335,7 @@ page('sys-cred', {
     callout('warn', rows.length ? '凭证到期提醒' : '尚未登记任何凭证',
       rows.length
         ? '请定期检查凭证的<b>最近同步时间</b>，长期未同步的凭证建议停用（active=false）以降低泄露风险。'
-        : '当前凭证登记表无记录：生成链路实际调用的密钥保存在 <b>n8n 凭据库</b>，本页只是登记台账（<b>不参与出图</b>）。'
+        : '当前凭证登记表无记录：生成链路实际调用的密钥保存在 <b>后台凭据库</b>，本页只是登记台账（<b>不参与出图</b>）。'
           + '如需在此登记提示信息，请到 7.3「AI 模型与密钥」保存（只登记 provider/model/key_hint，明文不入库）。'
     );
   }
@@ -485,7 +485,7 @@ page('adm-audit', {
       []
     ).replace('<tbody></tbody>', '<tbody>' + window.__auditRowHtml(rows) + '</tbody>')
       + callout('','审计日志保留策略',
-        '最近90天日志保留在PostgreSQL以供快速查询，更早的日志归档到Zeabur对象存储（90天-2年）。敏感操作（凭证变更/权限变更）永久保留。'
+        '最近 90 天日志在线保留便于快速查询，更早的归档到对象存储（90 天–2 年）。敏感操作（凭证变更/权限变更）永久保留。'
         + '<br><b>类型说明：</b>「访问被拒」= 未登录/权限不足被后端拦下（正常防护）；「操作失败」= 业务执行失败。');
     setTimeout(function(){ window._auditApply(); }, 0);
     return html;
@@ -505,7 +505,7 @@ page('adm-audit', {
 page('sys-model', {
   roles: ['系统管理员'],
   spec: {
-    q: 'AI 模型与密钥：录入模型密钥（粘贴），脱敏存储，同步到 n8n 后台',
+    q: 'AI 模型与密钥：录入模型密钥（粘贴），脱敏存储，同步到后台凭据库',
     acts: ['录入密钥','查看脱敏密钥','同步到 n8n'],
     wf: ['WF-29-L4-API'],
     reads: ['platform.credential_registry'],
@@ -531,8 +531,8 @@ page('sys-model', {
       '<input id="ck_key" type="password" placeholder="密钥(sk-...)" class="inp" style="flex:1.4;min-width:160px">' +
       '<button class="btn" onclick="window._credSave()">保存密钥</button>' +
       '</div>';
-    return callout('', '登记台账，不参与出图', '本页保存的是平台侧<b>凭证登记</b>信息（哪个提供方/模型配了哪个密钥提示）。实际调用用的密钥保存在 n8n 凭据库，生成链路<b>不从这张表取密钥</b> —— 在这里改动不会影响出图。如需让登记信息驱动实际调用，属待接入项。') + panel('模型密钥管理',
-      callout('', '密钥安全', '密钥<b>只存加密密文</b>，前端<b>永不回显明文</b>，仅显示脱敏 hint（如 sk-****xxxx）。保存后由独立同步脚本同步到 n8n credentials，供生图工作流调用。') +
+    return callout('', '登记台账，不参与出图', '本页保存的是平台侧<b>凭证登记</b>信息（哪个提供方/模型配了哪个密钥提示）。实际调用用的密钥保存在后台凭据库，生成链路<b>不从这张表取密钥</b> —— 在这里改动不会影响出图。如需让登记信息驱动实际调用，属待接入项。') + panel('模型密钥管理',
+      callout('', '密钥安全', '密钥<b>只存加密密文</b>，前端<b>永不回显明文</b>，仅显示脱敏 hint（如 sk-****xxxx）。保存后由后台同步到凭据库，供生图流程调用。') +
       addForm +
       table(['提供方','模型','密钥(脱敏)','状态','同步时间'], data.length ? data : [['<span class="ghost">暂无密钥</span>','','','','']])
     );
@@ -561,7 +561,7 @@ page('sys-binding', {
   },
   guide: [
     '每个<b>生成环节</b>（场景图/模特图/文案/合规审查等）绑定一个具体模型',
-    '修改绑定后需跑一次测试任务验证生成效果（02文档§5.x）'
+    '修改绑定后需跑一次测试任务验证生成效果'
   ],
   body: async function(){
     var r = await L4.fetch('engine.binding.list', {});
@@ -736,7 +736,7 @@ page('adm-db', {
   },
   guide: [
     'schema 迁移记录是数据库结构的<b>变更历史</b>，用于排查版本不一致',
-    '迁移操作本身在 n8n 后台执行，前端只做只读展示'
+    '迁移操作本身在后台执行，本页只做只读展示'
   ],
   body: async function(){
     var r = await L4.fetch('admin.schema.list', {});
@@ -750,7 +750,7 @@ page('adm-db', {
       ];
     });
     return callout('','数据维护说明',
-      'schema 迁移记录为只读展示。执行迁移（DDL）需在 n8n 后台的 PostgreSQL 节点中操作，前端<b>不提供</b>任何写库入口。'
+      'schema 迁移记录为只读展示。执行迁移需由系统管理员在后台操作，前端<b>不提供</b>任何写库入口。'
     ) +
     panel('Schema 迁移记录', table(
       ['版本','应用时间','说明'],
@@ -771,7 +771,7 @@ page('adm-perm', {
   },
   body: function(){
     return panel('三角色权限矩阵',
-      '<p style="font-size:12px;color:var(--t-3);margin-bottom:10px">完整权限矩阵见07文档§3.2，此处展示核心差异</p>' +
+      '<p style="font-size:12px;color:var(--t-3);margin-bottom:10px">此处展示核心差异</p>' +
       table(
         ['操作','运营','内容管理员','系统管理员'],
         [

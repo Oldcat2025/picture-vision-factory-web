@@ -357,7 +357,7 @@ page('pid-cosmo', {
         ['Subject','Relation Type','Object','Evidence'],
         triples.length ? triples : [['<span class="ghost">暂无关系三元组</span>','','','']]
       ),
-      {note:'<b>relation_type字段</b>当前不做枚举校验（02文档§2.1暂缓决策），保持自由文本以容纳未知关系类型'}
+      {note:'<b>relation_type字段</b>当前不做枚举校验，保持自由文本以容纳未知关系类型'}
     );
   }
 });

@@ -167,7 +167,7 @@ page('ledger-cost', {
 page('ledger-breakdown', {
   roles: ['系统管理员'],
   spec: {
-    q: '按层级/模型拆分：回答"钱花在哪层"（01文档问题5核心诉求）',
+    q: '按层级/模型拆分：回答"钱花在哪层"',
     acts: ['查看Layer级别成本分布','查看模块×模型矩阵','下钻到具体调用'],
     wf: ['WF-29-L4-API'],
     reads: ['tenant_oldcat.generation_ledger'],
