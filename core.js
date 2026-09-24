@@ -123,7 +123,7 @@ var THUMB_PH = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAA
 function thumbImg(url, px){
   px = px || 40;
   var u = String(url || '');
-  if (!u) return '<span class="ghost">无图</span>';
+  if (!u) return '<span class="ghost" style="display:inline-block;width:' + px + 'px;font-size:10.5px;text-align:center">无图</span>';
   var src = u;
   if (u.indexOf('aliyuncs.com') >= 0 && u.indexOf('x-oss-process') < 0) {
     src = u + (u.indexOf('?') >= 0 ? '&' : '?') + 'x-oss-process=image/resize,w_' + (px * 2);
