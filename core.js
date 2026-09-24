@@ -637,6 +637,19 @@ window._abCreate = async function(){
 /* ─── 上线跟踪：手工录入周表现快照（source=MANUAL_ENTRY） ───
    说明：原「自动对接项目24」方案已取消；后续改为按 ASIN 由 SORFTIME 同步市场侧数据。当前提供手工录入通道。
    表 listing_performance_snapshot.source 只允许 SORFTIME_SYNC / MANUAL_ENTRY。 */
+/* ─── 上线跟踪：按 ASIN 从 SORFTIME 同步市场侧数据（方案A） ───
+   只同步 SORFTIME 能提供的字段（价格/评分/评论数/标题）；
+   曝光/点击/转化率/销量是亚马逊后台口径，SORFTIME 没有，仍需人工录入。 */
+window._syncMarket = async function(){
+  if (!confirm('按已登记的 ASIN 从 SORFTIME 拉取【价格 / 评分 / 评论数】写入本月快照。\n\n注意：SORFTIME 不提供曝光/点击/转化率/销量，这四项仍需人工从亚马逊后台录入。\n\n继续？')) return;
+  var res = await L4.fetch('listing.sync_market', {limit: 10});
+  if (!res.success) { alert('同步失败：' + (res.error || '未知错误')); return; }
+  var rows = res.data || [];
+  if (!rows.length) { alert('没有可同步的记录。\n\n请先到「上架登记」页登记上架，并填写 ASIN。'); return; }
+  alert('同步完成：' + rows.length + ' 条\n周期：' + (rows[0].snapshot_period || '-') + '\n\n市场侧字段已写入；曝光/点击/转化率/销量请用「录入周表现」补。');
+  location.reload();
+};
+
 window._snapshotCreate = async function(){
   var pr = await L4.fetch('listing.list', {table:'publication', limit:200});
   var pubs = (pr.success ? (pr.data||[]) : []);

@@ -604,15 +604,16 @@ page('track-perf', {
     acts: ['查看表现快照','按周筛选','对比趋势'],
     wf: ['WF-29-L4-API'],
     reads: ['tenant_oldcat.snapshot'],
-    limits: ['手工录入已开通；按 ASIN 的 SORFTIME 同步通道在建（SORFTIME 只提供价格/评分/评论数等市场侧指标，不提供曝光/点击/转化）']
+    limits: ['市场侧数据(价格/评分/评论数)按 ASIN 由 SORFTIME 同步；曝光/点击/转化率/销量为亚马逊后台口径，需手工录入']
   },
   body: async function(){
     var r = await L4.fetch('listing.list', {table:'snapshot', limit:100});
     if (!r.success) return callout('warn', '数据加载失败', r.error || '未知错误');
     return toolbar(
       [inp('搜索SKU...'), sel('周次',['全部'])],
-      [btn('录入周表现',null,"window._snapshotCreate()"), btn('导出周报','btn--ghost',"window._exportCsv()")]
+      [btn('按ASIN同步市场数据',null,"window._syncMarket()"), btn('录入周表现','btn--ghost',"window._snapshotCreate()"), btn('导出周报','btn--ghost',"window._exportCsv()")]
     ) +
+    callout('', '字段来源（重要）', '<b>市场侧</b>（价格 / 评分 / 评论数 / 标题）：由「按ASIN同步市场数据」从 SORFTIME 拉取，来源标记 SORFTIME_SYNC；<b>后台侧</b>（展示次数 / 点击次数 / 转化率 / 销量）：SORFTIME 拿不到，需用「录入周表现」手工录入，来源标记 MANUAL_ENTRY。两类指标按「上架记录 + 周期 + 来源」各自留存，互不覆盖。') +
     cfgTable(r.data || [], '暂无表现快照数据');
   }
 });
