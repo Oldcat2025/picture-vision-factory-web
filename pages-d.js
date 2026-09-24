@@ -12,7 +12,8 @@ var CFG_LABELS = {
   based_on_ab_test_ids:'依据测试', generated_at:'生成时间', reviewed_by:'复核人',
   version:'版本', description:'说明', applied_at:'应用时间', thumbnail_ref:'缩略图',
   asin:'ASIN', title:'标题', price:'价格', rating:'评分', review_count:'评论数',
-  monthly_sales_volume:'月销量(估算)', bsr:'类目排名', raw_payload:'原始返回'
+  monthly_sales_volume:'月销量(估算)', bsr:'类目排名', raw_payload:'原始返回',
+  prompt_tokens:'输入tokens', completion_tokens:'输出tokens', total_prompt_tokens:'输入tokens合计', total_completion_tokens:'输出tokens合计', call_count:'调用次数', success_count:'成功', failed_count:'失败', partial_count:'部分成功', total_cost_usd:'成本合计(USD)', total_duration_ms:'耗时合计(ms)', retry_count:'重试次数', fallback_count:'降级次数'
 };
 function cfgTable(rows, emptyMsg){
   if (!rows || !rows.length) return ghost(emptyMsg || '暂无配置数据');
