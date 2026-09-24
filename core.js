@@ -477,6 +477,7 @@ window._publishCreate = async function(){
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><b style="font-size:15px">登记新上架</b><button onclick="document.getElementById(\'pub-modal\').remove()" style="border:none;background:none;font-size:18px;cursor:pointer">✕</button></div>'+
     '<div style="margin-bottom:10px"><label style="display:block;font-size:12.5px;color:var(--t-2);margin-bottom:4px">产品</label><select class="inp" id="pub-pid" style="width:100%;box-sizing:border-box">'+opts+'</select></div>'+
     '<div style="margin-bottom:10px"><label style="display:block;font-size:12.5px;color:var(--t-2);margin-bottom:4px">平台</label><select class="inp" id="pub-platform" style="width:100%;box-sizing:border-box"><option>AMAZON</option><option>TIKTOK_SHOP</option><option>TEMU</option></select></div>'+
+    '<div style="margin-bottom:10px"><label style="display:block;font-size:12.5px;color:var(--t-2);margin-bottom:4px">ASIN（亚马逊商品编码）</label><input class="inp" id="pub-asin" placeholder="如 B0DQD7W8QH，10 位；AMAZON 必填" maxlength="12" style="width:100%;box-sizing:border-box"><div style="font-size:11.5px;color:var(--t-3);margin-top:4px">填了 ASIN，后续才能按它同步这条链接的市场数据（价格/评分/评论数）</div></div>'+
     '<div style="margin-bottom:10px"><label style="display:block;font-size:12.5px;color:var(--t-2);margin-bottom:4px">Listing 链接</label><input class="inp" id="pub-url" placeholder="https://..." style="width:100%;box-sizing:border-box"></div>'+
     '<div style="margin-bottom:10px"><label style="display:block;font-size:12.5px;color:var(--t-2);margin-bottom:4px">登记人</label><input class="inp" id="pub-by" placeholder="如 老猫" style="width:100%;box-sizing:border-box"></div>'+
     '<div style="margin-bottom:10px"><label style="display:block;font-size:12.5px;color:var(--t-2);margin-bottom:4px">备注</label><input class="inp" id="pub-note" style="width:100%;box-sizing:border-box"></div>'+
@@ -495,13 +496,19 @@ window._publishSubmit = async function(){
   var url = document.getElementById('pub-url').value.trim();
   var by = document.getElementById('pub-by').value.trim();
   var note = document.getElementById('pub-note').value.trim();
+  var asinRaw = (document.getElementById('pub-asin') || {value:''}).value.trim();
   if (!by) { alert('登记人必填'); return; }
+  var asinT = String(asinRaw || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (asinT && asinT.length !== 10) { alert('ASIN 应为 10 位字母数字（当前 ' + asinT.length + ' 位），请核对。'); return; }
+  if (!asinT && platform === 'AMAZON') { alert('亚马逊上架请填写 ASIN —— 它是后续按 ASIN 同步这条链接市场数据的依据。'); return; }
+  if (asinT && platform !== 'AMAZON') { alert('ASIN 仅用于亚马逊；当前平台是 ' + platform + '，请清空 ASIN 或改选 AMAZON。'); return; }
   var row = {
     id: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c){ var r=Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16); }),
     product_identity_id: pid,
     platform: platform,
     published_by: by,
     listing_url: url,
+    asin: asinT || null,
     notes: note,
     published_at: new Date().toISOString(),
     asset_ids: []

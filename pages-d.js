@@ -10,7 +10,9 @@ var CFG_LABELS = {
   synced_at:'同步时间', test_group_label:'分组标签', theme_code:'主题代码', started_at:'开始时间',
   ended_at:'结束时间', result_summary:'结果摘要', scope:'适用范围', suggestion_text:'优化建议',
   based_on_ab_test_ids:'依据测试', generated_at:'生成时间', reviewed_by:'复核人',
-  version:'版本', description:'说明', applied_at:'应用时间', thumbnail_ref:'缩略图'
+  version:'版本', description:'说明', applied_at:'应用时间', thumbnail_ref:'缩略图',
+  asin:'ASIN', title:'标题', price:'价格', rating:'评分', review_count:'评论数',
+  monthly_sales_volume:'月销量(估算)', bsr:'类目排名', raw_payload:'原始返回'
 };
 function cfgTable(rows, emptyMsg){
   if (!rows || !rows.length) return ghost(emptyMsg || '暂无配置数据');
@@ -602,7 +604,7 @@ page('track-perf', {
     acts: ['查看表现快照','按周筛选','对比趋势'],
     wf: ['WF-29-L4-API'],
     reads: ['tenant_oldcat.snapshot'],
-    limits: ['手工录入通道已开通；自动回流（PROJECT_24_SYNC）尚未接通']
+    limits: ['手工录入已开通；按 ASIN 的 SORFTIME 同步通道在建（SORFTIME 只提供价格/评分/评论数等市场侧指标，不提供曝光/点击/转化）']
   },
   body: async function(){
     var r = await L4.fetch('listing.list', {table:'snapshot', limit:100});
