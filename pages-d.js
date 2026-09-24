@@ -47,6 +47,23 @@ function cfgTable(rows, emptyMsg){
       var v = row[k];
       if (v === null || v === undefined || v === '') return '-';
       if (typeof v === 'boolean') return chip(v ? '是' : '否', v ? 'ok' : 'neutral');
+      /* jsonb 列（icon_bullets / ia6_params / decisive_moment / applicable_image_types …）
+         原先直接 String() → 满屏 [object Object]，客户看不懂 */
+      if (typeof v === 'object') {
+        if (Array.isArray(v)) {
+          if (!v.length) return '-';
+          var parts = [];
+          for (var ai = 0; ai < v.length; ai++) {
+            var x = v[ai];
+            if (x === null || x === undefined) continue;
+            parts.push(typeof x === 'object' ? String(x.text || x.name || x.label || JSON.stringify(x)) : String(x));
+          }
+          return parts.length ? parts.join('、') : '-';
+        }
+        var js = JSON.stringify(v);
+        if (js === '{}') return '-';
+        return js.length > 160 ? (js.slice(0, 160) + '…') : js;
+      }
       return String(v);
     });
     return hasThumb ? [thumbImg(row.thumbnail_ref, 40)].concat(cells) : cells;
