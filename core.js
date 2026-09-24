@@ -635,8 +635,8 @@ window._abCreate = async function(){
 };
 
 /* ─── 上线跟踪：手工录入周表现快照（source=MANUAL_ENTRY） ───
-   说明：自动回流（source=PROJECT_24_SYNC）尚未接通，当前提供手工录入通道。
-   表 listing_performance_snapshot.source 只允许 PROJECT_24_SYNC / MANUAL_ENTRY。 */
+   说明：原「自动对接项目24」方案已取消；后续改为按 ASIN 由 SORFTIME 同步市场侧数据。当前提供手工录入通道。
+   表 listing_performance_snapshot.source 只允许 SORFTIME_SYNC / MANUAL_ENTRY。 */
 window._snapshotCreate = async function(){
   var pr = await L4.fetch('listing.list', {table:'publication', limit:200});
   var pubs = (pr.success ? (pr.data||[]) : []);
