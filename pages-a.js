@@ -42,7 +42,7 @@ page('dash-todo', {
         t.sku || '-',
         t.module || '-',
         chip(t.status || '-', stTone(t.status)),
-        String(t.created_at || '-').slice(0,16)
+        fmtDT(t.created_at)
       ];
     });
     var taskTable = panel('近期任务', table(
@@ -111,7 +111,7 @@ page('dash-overview', {
         t.module || '-',
         layerChip(t.layer),
         chip(t.status || '-', stTone(t.status)),
-        String(t.created_at || '-').slice(0,16),
+        fmtDT(t.created_at),
         '<button class="btn btn--ghost" style="padding:2px 10px" onclick="taskDetailModal(JSON.parse(this.getAttribute(\'data-t\')))" data-t=\''+tj+'\'>详情</button>'
       ];
     });
@@ -212,7 +212,7 @@ page('pid-list', {
         chip(id.product_category_track || 'GENERIC_PRODUCT', 'neutral'),
         id.ia12_coverage_type || 'NONE',
         (item.product_dna ? '1' : '0'),
-        String(id.dna_analyzed_at || id.updated_at || '-').slice(0,16)
+        fmtDT(id.dna_analyzed_at || id.updated_at)
       ];
     });
     return toolbar(
@@ -284,7 +284,7 @@ page('pid-dna', {
         ['QC结果', chip(pd.qc_result || '-', qcTone)],
     ['QC一致性', pd.qc_consistency ? (chip(pd.qc_consistency, pd.qc_consistency === 'PASS' ? 'ok' : 'err') + ' <span class="sub">剥离 ' + (((pd.qc_consistency_detail||{}).enforced_count)||0) + ' 处 · 复验残留 ' + ((((pd.qc_consistency_detail||{}).residual)||[]).length) + ' 项</span>') : '<span class="sub">本次 QC 无「点名移除」的声明，无需一致性校验</span>'],
         ['QC模型', chip(pd.qc_model || '-', 'neutral')],
-        ['最后更新', String(id.dna_analyzed_at || id.updated_at || '-').slice(0,16)]
+        ['最后更新', fmtDT(id.dna_analyzed_at || id.updated_at)]
       ])) +
       '<div>'+btn('强制刷新DNA（需权限）','btn--ghost',"window._dnaRefresh('强制刷新 DNA','白底图 URL')")+btn('查看原始JSON','btn--ghost',"window._showJson(window._curDna)")+'</div>'+
     '</div>' +
@@ -340,7 +340,7 @@ page('pid-cosmo', {
         ['产品名', id.product_name || '-'],
         ['市场', cp.market || id.market || '-'],
         ['画像模型', cp.model_used || '-'],
-        ['生成时间', String(cp.generated_at || '-').slice(0,16)]
+        ['生成时间', fmtDT(cp.generated_at)]
       ])) +
       '<div>'+btn('重新生成画像（需权限）','btn--ghost',"window._dnaRefresh('重新生成画像','白底图 URL')")+'</div>'+
     '</div>' +

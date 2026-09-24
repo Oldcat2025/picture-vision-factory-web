@@ -268,7 +268,7 @@ page('sys-instance', {
     var data = rows.map(function(row){
       return [
         row.version || '-',
-        row.applied_at ? String(row.applied_at).slice(0,16) : '-',
+        row.applied_at ? fmtDT(row.applied_at) : '-',
         row.description || '-'
       ];
     });
@@ -573,7 +573,7 @@ page('sys-binding', {
         row.model_name || '-',
         chip(row.active ? '启用' : '停用', row.active ? 'ok' : 'neutral'),
         row.updated_by || '-',
-        row.updated_at ? String(row.updated_at).slice(0,16) : '-'
+        row.updated_at ? fmtDT(row.updated_at) : '-'
       ];
     });
     return callout('', '登记台账，不参与出图', '本页是<b>模型绑定登记</b>。实际出图用哪个模型由 L2 引擎按「敏感品类 / 有无参考图 / 文字密集」自动路由，<b>不读这张表</b> —— 改这里不会改变路由结果。') + toolbar(
@@ -612,7 +612,7 @@ page('sys-param', {
         (typeof row.default_aspect_ratio_map === 'object' ? JSON.stringify(row.default_aspect_ratio_map) : (row.default_aspect_ratio_map || '-')),
         (typeof row.watermark_config === 'object' ? JSON.stringify(row.watermark_config) : (row.watermark_config || '-')),
         chip(row.active ? '启用' : '停用', row.active ? 'ok' : 'neutral'),
-        row.created_at ? String(row.created_at).slice(0,16) : '-'
+        row.created_at ? fmtDT(row.created_at) : '-'
       ];
     });
     return callout('', '登记台账，不参与出图', '本页是<b>生图参数版本登记</b>。当前默认画质/画幅由工作流内部参数决定，生成链路<b>不读这张表</b> —— 改这里不会改变出图效果。') + toolbar(
@@ -745,7 +745,7 @@ page('adm-db', {
     var data = rows.map(function(row){
       return [
         row.version || '-',
-        row.applied_at ? String(row.applied_at).slice(0,16) : '-',
+        row.applied_at ? fmtDT(row.applied_at) : '-',
         row.description || '-'
       ];
     });
@@ -832,7 +832,7 @@ page('adm-cost', {
         thrTxt,
         chip(row.active ? '启用' : '停用', row.active ? 'ok' : 'neutral'),
         row.updated_by || '-',
-        row.updated_at ? String(row.updated_at).slice(0,16) : '-'
+        row.updated_at ? fmtDT(row.updated_at) : '-'
       ];
     });
     return callout('', '登记台账，不阻断出图', '本页是<b>成本预算登记</b>。成本为估算值；当前<b>未做超预算硬性中断</b>，仅作记录与提醒用途。') + panel('成本预算配置', table(

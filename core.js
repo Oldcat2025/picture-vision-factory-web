@@ -116,6 +116,15 @@ const NAV = [
 
 /* ═══ 渲染助手 ═══ */
 
+/* 统一的日期时间展示：库里的值是 ISO（2026-09-24T16:32:05+00:00），
+   页面上要显示成「2026-09-24 16:32」这种一眼能读的样子。
+   全站只有这一个格式化入口，避免有的页面带 T、有的不带的观感不一致。 */
+function fmtDT(v, len) {
+  var s = (v === null || v === undefined) ? '' : String(v);
+  if (!s || s === 'null') return '-';
+  s = s.replace('T', ' ');
+  return len ? s.slice(0, len) : s.slice(0, 16);
+}
 function chip(t, tone){ return '<span class="chip chip--'+(tone||'neutral')+'">'+t+'</span>'; }
 
 /* 缩略图单元格：OSS 图片自动加 resize 参数，非 OSS 原样，加载失败降级灰底占位 */
@@ -344,7 +353,7 @@ function taskDetailModal(t){
     ['成本(USD)',t.cost_estimate_usd!=null?t.cost_estimate_usd:'-'],
     ['耗时(ms)',t.duration_ms!=null?t.duration_ms:'-'],
     ['错误信息',t.error_message||'无'],
-    ['创建时间',String(t.created_at||'-').slice(0,19)]
+    ['创建时间',fmtDT(t.created_at, 19)]
   ];
   var rows = fields.map(function(f){ return '<tr><td style="padding:6px 8px;color:#888;white-space:nowrap">'+f[0]+'</td><td style="padding:6px 8px;word-break:break-all">'+f[1]+'</td></tr>'; }).join('');
   var html = '<div id="task-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999">'+

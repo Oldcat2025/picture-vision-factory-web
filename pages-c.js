@@ -24,7 +24,7 @@ page('asset-gallery', {
         mkt: a.market || '-',
         module: a.module || '-',
         type: a.image_type || '-',
-        time: String(a.generated_at || '-').slice(0,16),
+        time: fmtDT(a.generated_at),
         reusable: !!a.reusable_flag,
         channel: a.channel || '',
         go: '#asset-detail',
@@ -85,7 +85,7 @@ page('asset-detail', {
         ['图片类型',a.image_type||'-'],
         ['市场',a.market||'-'],
         ['关联任务','<span class="m">'+(a.task_id||'-')+'</span>'],
-        ['生成时间',String(a.generated_at||'-').slice(0,19)],
+        ['生成时间',fmtDT(a.generated_at, 19)],
         ['可复用标记',reuse]
       ])) +
     '</div>' +

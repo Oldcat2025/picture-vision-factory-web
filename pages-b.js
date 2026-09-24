@@ -89,7 +89,7 @@ async function modulePage(opts){
       t.sku || '-',
       chip(t.status || '-', t.status==='SUCCESS'?'ok':(t.status==='FAILED'?'err':'warn')),
       t.module || '-',
-      String(t.created_at||'').slice(0,16)
+      fmtDT(t.created_at)
     ];
   });
   var taskTable = taskRows.length ? taskRows : [['<span class="ghost">暂无任务，提交后显示</span>','','','','','']];
@@ -241,7 +241,7 @@ page('task-d', {
         '<span class="m">' + String(t.id || '').slice(0, 8) + '</span>',
         t.sku || '-',
         chip(t.status || '-', t.status === 'SUCCESS' ? 'ok' : (t.status === 'FAILED' ? 'err' : 'warn')),
-        String(t.created_at || '').slice(0, 16)
+        fmtDT(t.created_at)
       ];
     });
     var taskTable = rows.length ? rows : [['<span class="ghost">暂无任务，提交后显示</span>','','','','']];
@@ -450,7 +450,7 @@ page('task-f-preview', {
       return '<div style="margin:10px 0">'
         + '<div style="display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:#8c8c8c;margin-bottom:6px;gap:10px">'
         + '<span><b style="color:#262626">' + m[1] + '</b> · ' + m[2] + '</span>'
-        + '<span style="white-space:nowrap">' + (a.effective_model || '-') + ' · ' + (a.quality || '-') + ' · ' + String(a.generated_at || '').slice(0, 16) + '</span>'
+        + '<span style="white-space:nowrap">' + (a.effective_model || '-') + ' · ' + (a.quality || '-') + ' · ' + fmtDT(a.generated_at) + '</span>'
         + '</div>'
         + '<img src="' + imgUrl(a.storage_ref, W) + '" style="width:100%;display:block;border:1px solid #eee;border-radius:8px" loading="lazy" alt="' + m[1] + '">'
         + '</div>';
@@ -532,7 +532,7 @@ page('task-pipeline', {
 
     var opts = tasks.slice(0, 100).map(function(t){
       return '<option value="' + t.id + '"' + (String(t.id) === String(task.id) ? ' selected' : '') + '>'
-        + (t.sku || '-') + ' / ' + (t.module || '-') + ' / ' + String(t.created_at || '').slice(0, 16) + '</option>';
+        + (t.sku || '-') + ' / ' + (t.module || '-') + ' / ' + fmtDT(t.created_at) + '</option>';
     }).join('');
     var picker = panel('选择任务', '<select class="ctl" style="max-width:580px" onchange="window._pickTask(this.value)">' + opts + '</select>');
 
@@ -548,7 +548,7 @@ page('task-pipeline', {
         ['实际模型', task.effective_model || task.requested_model || '-'],
         ['耗时', task.duration_ms != null ? (task.duration_ms + ' ms') : '-'],
         ['成本估算', task.cost_estimate_usd != null ? ('$' + task.cost_estimate_usd) : '（需系统管理员权限）'],
-        ['提交时间', String(task.created_at || '-').slice(0, 19)],
+        ['提交时间', fmtDT(task.created_at, 19)],
         ['错误原因', task.error_message || '-']
       ]) + '</div></div>');
 
