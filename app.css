@@ -236,6 +236,7 @@ table.t .dim{color:var(--t-4)}
 .chip--neutral{background:#F1F2F2;color:var(--t-3)}
 .chip--ok     {background:var(--tint-100);color:var(--mo-600)}
 .chip--fail   {background:var(--red-bg);color:var(--red)}
+.chip--err    {background:var(--red-bg);color:var(--red)}   /* 别名：JS 里普遍传 err */
 .chip--warn   {background:var(--amber-bg);color:var(--amber)}
 .chip--run    {background:var(--blue-bg);color:var(--blue)}
 .chip--sys    {background:var(--violet-bg);color:var(--violet)}
