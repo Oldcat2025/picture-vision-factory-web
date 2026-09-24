@@ -212,20 +212,54 @@ page('ledger-breakdown', {
 page('ledger-failure', {
   roles: ['系统管理员'],
   spec: {
-    q: '失败率与重试分析：按模块/层级下钻，展示error_message样例',
-    acts: ['识别失败和部分完成记录','查看错误信息和重试次数','导出错误CSV'],
+    q: '失败率与重试分析：按模块/层级下钻，按原因归类，展示error_message样例',
+    acts: ['识别失败和部分完成记录','按原因归类查看（含合规拦截）','查看错误信息和重试次数','导出错误CSV'],
     wf: ['WF-29-L4-API'],
     reads: ['tenant_oldcat.generation_ledger'],
     limits: ['只展示最近7天失败记录']
   },
+  guide: [
+    '顶部「按失败原因归类」先把失败归好类，再看下方明细定位到具体任务',
+    '<b>合规拦截</b>不是故障：竞品对比类图片被硬闸拦下，<b>没有落库、没有上传 OSS</b>，属预期行为',
+    '重试需要重新核对产品与生成参数后在任务页提交，不提供无参数盲重试'
+  ],
   body: async function(){
     var now=new Date(),past=new Date(now.getTime()-6*86400000);
     var fmt=function(d){return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);};
-    var rf = await L4.fetch('ledger.failures', {date_from:fmt(past),date_to:fmt(now),limit:200});
+    var df=fmt(past),dt=fmt(now);
+    var rr = await L4.fetch('ledger.failure_reasons', {date_from:df,date_to:dt});
+    var rf = await L4.fetch('ledger.failures', {date_from:df,date_to:dt,limit:200});
     if (!rf.success) return callout('warn', '数据加载失败', rf.error || '未知错误');
     var failed = rf.data || [];
-    if (!failed.length) return ghost('暂无失败记录');
-    return panel('最近7天失败 / 部分完成记录',table(['时间','模块','层级','实际模型','状态','重试次数','成本','错误原因'],failed.map(function(x){return [x.created_at,x.module,x.layer,x.effective_model,x.status,x.retry_count,x.cost_estimate_usd,x.error_message].map(ledgerEscape);})),{note:'最多200条。重试需要重新核对产品与生成参数后在任务页提交，不提供无参数盲重试。'})+'<div class="btnrow">'+btn('导出错误日志CSV','btn--ghost','window._exportCsv()')+'</div>';
+    var REASON = {
+      compliance_block: ['合规拦截 · 竞品对比','err',''],
+      compliance_warn: ['合规提醒 · 已放行','warn',''],
+      compliance_check_unavailable: ['合规复核不可用 · 已拦下','err',''],
+      no_reason: ['未记录原因','warn',''],
+      other: ['其他 / 技术失败','warn','']
+    };
+    var rrows = ((rr.success && rr.data) ? rr.data : []).map(function(x){
+      var key = String(x.reason_key || 'other');
+      var m = REASON[key] || [key,'warn',''];
+      return [
+        (x.status === 'PARTIAL' ? '部分完成' : '失败'),
+        chip(m[0], m[1]),
+        String(x.cnt || 0),
+        (x.cost != null ? ('$' + Number(x.cost).toFixed(4)) : '-'),
+        String(x.last_at || '-').slice(0,16).replace('T',' '),
+        ledgerEscape(String(x.sample || '-'))
+      ];
+    });
+    var rpanel = panel('按失败原因归类（最近7天）',
+      (rrows.length ? table(['状态','原因分类','条数','成本','最近一次','原因样例'], rrows)
+                    : '<div class="ghost" style="padding:16px">最近7天没有失败记录</div>'),
+      {note:'合规硬闸拦下的记录会归到「合规拦截」：这类图<b>没有落库、没有上传 OSS</b>，属预期的拦截而非故障；下方明细可定位到具体任务。'});
+    if (!failed.length) return rpanel + ghost('暂无失败明细');
+    return rpanel + panel('最近7天失败 / 部分完成明细',
+      table(['时间','模块','层级','实际模型','状态','重试次数','成本','错误原因'],
+        failed.map(function(x){return [x.created_at,x.module,x.layer,x.effective_model,x.status,x.retry_count,x.cost_estimate_usd,x.error_message].map(ledgerEscape);})),
+      {note:'最多200条。重试需要重新核对产品与生成参数后在任务页提交，不提供无参数盲重试。'})
+      + '<div class="btnrow">'+btn('导出错误日志CSV','btn--ghost','window._exportCsv()')+'</div>';
   }
 });
 
