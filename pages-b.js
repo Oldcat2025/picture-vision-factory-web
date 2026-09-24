@@ -389,6 +389,9 @@ page('task-f-preview', {
       } catch (e) {}
     }
     if (!prod) prod = prods[0];
+
+    /* 素材来源：该商品在 F_APLUS 模块下的已生成资产（image_type = banner/lifestyle/detail/comparison/whatsinbox） */
+    var ar = await L4.fetch('assets.list', { product_identity_id: prod.id, module: 'F_APLUS', limit: 200 });
     if (!ar.success) return callout('warn', '素材加载失败', ar.error || '未知错误');
     var assets = ar.data || [];
 

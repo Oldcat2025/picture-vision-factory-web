@@ -257,8 +257,8 @@ page('sys-cred', {
   spec: {
     q: '凭证管理：展示凭证名称/类型/关联工作流，不显示明文Key',
     acts: ['查看凭证列表','查看关联工作流数','跳转n8n凭证页'],
-    wf: ['n8n API /credentials（只读列表）'],
-    reads: [],
+    wf: ['WF-29-L4-API（engine.cred.list）'],
+    reads: ['platform.credential_registry'],
     limits: ['UI不显示明文Key/Secret，这是最后防线（07文档§2.2.7）']
   },
   guide: [
@@ -267,25 +267,24 @@ page('sys-cred', {
     '点击"跳转n8n凭证页"可直接打开n8n后台对应凭证编辑页（需登录权限）'
   ],
   body: async function(){
-    var r = await L4.fetch('admin.user.list', {});
+    var r = await L4.fetch('engine.cred.list', {});
     if (!r.success) return callout('warn', '数据加载失败', r.error || '未知错误');
     var rows = r.data || [];
-    var roleTone = {'系统管理员':'ok','operator':'neutral','运营':'neutral','内容管理员':'neutral'};
+    var activeN = rows.filter(function(x){ return x.active; }).length;
+    var staleN = rows.filter(function(x){ return !x.synced_at; }).length;
     var data = rows.map(function(row){
       return [
-        row.user_name || '-',
-        (function(){
-          var arr = (row.roles && row.roles.length) ? row.roles : null;
-          if (!arr) return chip(row.role || '-', roleTone[row.role] || 'neutral');
-          return arr.map(function(c){ var cn = roleCodeCn[c] || c; return chip(cn, roleTone[cn] || 'neutral'); }).join(' ');
-        })(),
-        row.tenant_schema || '-',
-        chip(row.active ? '激活' : '停用', row.active ? 'ok' : 'neutral'),
-        row.last_used_at ? String(row.last_used_at).slice(0,16) : '从未使用'
+        row.provider || '-',
+        '<span class="mono">' + (row.model || '-') + '</span>',
+        '<span class="mono">' + (row.key_hint || '****') + '</span>',
+        row.synced_at ? String(row.synced_at).slice(0,16).replace('T',' ') : '<span class="ghost">未同步</span>',
+        chip(row.active ? '启用' : '停用', row.active ? 'ok' : 'neutral'),
+        '<button class="xbtn" onclick="window.open(\'https://oldcat.zeabur.app/credentials\',\'_blank\')">n8n 后台查看</button>'
       ];
     });
-    return callout('','凭证安全约束',
-      '前端<b>永不显示明文Key/Secret</b>。即使后端API返回了明文（开发调试场景），前端也会替换为<code>sk-****</code>占位符。'+
+    return callout('','凭证登记总览',
+      '已登记 <b>' + rows.length + '</b> 条 · 启用 <b>' + activeN + '</b> 条 · 未同步 <b>' + staleN + '</b> 条。'+
+      '本页只做<b>引用可视化与脱敏展示</b>：前端<b>永不显示明文Key/Secret</b>（显示为 <code>sk-****</code> 占位）。'+
       '这是07文档§2.2.7规定的UI层最后防线，防止屏幕录制/截图泄密。'
     ) +
     toolbar(
@@ -293,11 +292,14 @@ page('sys-cred', {
       [btn('跳转n8n凭证页（需权限）','btn--ghost',"window.open('https://oldcat.zeabur.app/credentials','_blank')")]
     ) +
     table(
-      ['用户名','角色','关联实例','状态','最后使用'],
-      data.length ? data : [['<span class="ghost">暂无凭证记录</span>','','','','']]
+      ['提供方','模型','密钥(脱敏)','最近同步','状态','关联工作流'],
+      data.length ? data : [['<span class="ghost">暂无凭证记录</span>','','','','','']]
     ) +
-    callout('warn','凭证到期提醒',
-      '请定期检查凭证的<b>最后使用时间</b>，长期未使用的凭证建议停用（active=false）以降低泄露风险。'
+    callout('warn', rows.length ? '凭证到期提醒' : '尚未登记任何凭证',
+      rows.length
+        ? '请定期检查凭证的<b>最近同步时间</b>，长期未同步的凭证建议停用（active=false）以降低泄露风险。'
+        : '当前凭证登记表无记录：生成链路实际调用的密钥保存在 <b>n8n 凭据库</b>，本页只是登记台账（<b>不参与出图</b>）。'
+          + '如需在此登记提示信息，请到 7.3「AI 模型与密钥」保存（只登记 provider/model/key_hint，明文不入库）。'
     );
   }
 });
