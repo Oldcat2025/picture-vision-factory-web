@@ -46,7 +46,7 @@ function cfgTable(rows, emptyMsg){
     var cells = keys.map(function(k){
       var v = row[k];
       if (v === null || v === undefined || v === '') return '-';
-      if (typeof v === 'boolean') return chip(v ? '是' : '否', v ? 'ok' : 'neutral');
+      if (typeof v === 'boolean') return (k === 'active') ? chip(v ? '启用' : '停用', v ? 'ok' : 'neutral') : chip(v ? '是' : '否', v ? 'ok' : 'neutral');
       /* jsonb 列（icon_bullets / ia6_params / decisive_moment / applicable_image_types …）
          原先直接 String() → 满屏 [object Object]，客户看不懂 */
       if (typeof v === 'object') {
