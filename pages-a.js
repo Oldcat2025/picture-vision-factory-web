@@ -407,7 +407,7 @@ page('pid-sorftime', {
     var detail = kv([
       ['竞品参考', item.competitor_ref || '-'],
       ['类型 / 市场', (item.ref_type || '-') + ' / ' + (item.market || '-')],
-      ['标题', item.title || pd.title || '-'],
+      ['标题', (function(){ var tt = String(item.title || pd.title || '-'); return tt.length > 88 ? (ledgerEscape(tt.slice(0,88)) + '…') : ledgerEscape(tt); })()],
       ['价格', (item.price !== null && item.price !== undefined) ? ('$' + item.price) : (pd.price ? ('$' + pd.price) : '-')],
       ['评分', (item.rating !== null && item.rating !== undefined && item.rating !== '') ? item.rating : '<span class="ghost">SORFTIME 未返回</span>'],
       ['评论数', String(item.review_count !== null && item.review_count !== undefined ? item.review_count : '-')],
