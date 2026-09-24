@@ -343,6 +343,134 @@ page('task-g', {
   }
 });
 
+page('task-f-preview', {
+  roles: ['*'],
+  spec: {
+    q: 'A+ 页面预览拼装：按 A+ 五模块漏斗顺序把已生成的模块图拼成可预览、可导出的 HTML（01 PRD §7.4.6）',
+    acts: ['选择产品','切换桌面/手机通道','查看缺失模块','导出 HTML'],
+    wf: ['WF-29-L4-API'],
+    reads: ['tenant_oldcat.generated_assets'],
+    limits: ['只做拼装与预览，不生成图片；Comparison 必须同品牌变体对比（不得用竞品）']
+  },
+  guide: [
+    '拼装顺序即 A+ 五模块漏斗：Banner → Lifestyle → Detail → Comparison → WhatsInBox',
+    '桌面通道 970px / 手机通道 600px，只切换预览宽度，不改素材本身',
+    '<b>Comparison 合规红线</b>：同品牌不同变体对比，禁用竞品对比；导出前请人工确认',
+    '缺失模块显示占位并可跳转「A+页面设计」补生成'
+  ],
+  body: async function(){
+    var CH = 'desktop';
+    try { CH = sessionStorage.getItem('vf_aplus_ch') || 'desktop'; } catch(e){}
+    var W = CH === 'mobile' ? 600 : 970;
+
+    var pr = await L4.fetch('product.list', {limit: 200});
+    if (!pr.success) return callout('warn', '数据加载失败', pr.error || '未知错误');
+    var prods = (pr.data || []).map(function(it){ return it.identity || {}; }).filter(function(x){ return x.id && x.sku; });
+    if (!prods.length) return ghost('暂无产品，请先在产品身份库录入');
+
+    var cur = '';
+    try { cur = sessionStorage.getItem('vf_aplus_pid') || ''; } catch(e){}
+    var prod = null;
+    for (var i = 0; i < prods.length; i++) { if (String(prods[i].id) === String(cur)) { prod = prods[i]; break; } }
+    if (!prod) prod = prods[0];
+
+    var ar = await L4.fetch('assets.list', {product_identity_id: prod.id, module: 'F_APLUS', limit: 100});
+    if (!ar.success) return callout('warn', '素材加载失败', ar.error || '未知错误');
+    var assets = ar.data || [];
+
+    var byType = {};
+    assets.forEach(function(a){
+      var k = String(a.image_type || '').toLowerCase();
+      if (!byType[k]) byType[k] = a;
+    });
+
+    function imgUrl(u, w){
+      var s = String(u || '');
+      if (!s) return '';
+      if (s.indexOf('?') >= 0) return s;
+      return s + '?x-oss-process=image/resize,w_' + w;
+    }
+
+    var OPTS = prods.map(function(pp){
+      return '<option value="' + pp.id + '"' + (String(pp.id) === String(prod.id) ? ' selected' : '') + '>' + pp.sku + (pp.market ? ' (' + pp.market + ')' : '') + '</option>';
+    }).join('');
+
+    var MODS = [
+      ['banner', 'Banner 横幅', '模块 1 · 品牌开场 / 主视觉'],
+      ['lifestyle', 'Lifestyle 场景', '模块 2 · 生活场景代入'],
+      ['detail', 'Detail 细节', '模块 3 · 材质与工艺细节'],
+      ['comparison', 'Comparison 对比', '模块 4 · 同品牌变体对比（合规：不得用竞品）'],
+      ['whatsinbox', 'WhatsInBox 开箱', '模块 5 · 包装清单']
+    ];
+
+    var missing = [];
+    var blocks = MODS.map(function(m){
+      var a = byType[m[0]];
+      if (!a) {
+        missing.push(m[1]);
+        return '<div style="border:1px dashed #d9d9d9;border-radius:10px;padding:22px;text-align:center;color:#8c8c8c;margin:10px 0">'
+          + '<div style="font-weight:600;color:#595959">' + m[1] + ' · 未生成</div>'
+          + '<div style="font-size:12.5px;margin-top:6px">' + m[2] + '</div>'
+          + '<div style="margin-top:10px"><a href="#task-f" style="color:#1677ff">去「A+页面设计」生成</a></div></div>';
+      }
+      return '<div style="margin:10px 0">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:#8c8c8c;margin-bottom:6px;gap:10px">'
+        + '<span><b style="color:#262626">' + m[1] + '</b> · ' + m[2] + '</span>'
+        + '<span style="white-space:nowrap">' + (a.effective_model || '-') + ' · ' + (a.quality || '-') + ' · ' + String(a.generated_at || '').slice(0, 16) + '</span>'
+        + '</div>'
+        + '<img src="' + imgUrl(a.storage_ref, W) + '" style="width:100%;display:block;border:1px solid #eee;border-radius:8px" loading="lazy" alt="' + m[1] + '">'
+        + '</div>';
+    }).join('');
+
+    var preview = '<div style="overflow-x:auto"><div style="width:' + W + 'px;max-width:100%;background:#fff;padding:14px;border:1px solid #eee;border-radius:12px">'
+      + blocks + '</div></div>';
+
+    var exportHtml = '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">'
+      + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+      + '<title>A+ 页面预览 · ' + prod.sku + '</title>'
+      + '<style>body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;margin:0;background:#f5f6f6}'
+      + '.wrap{width:' + W + 'px;margin:0 auto;background:#fff;padding:16px;box-sizing:border-box}'
+      + '.mod{margin:14px 0}.cap{font-size:12.5px;color:#8c8c8c;margin-bottom:6px}img{width:100%;display:block;border-radius:8px}'
+      + '.miss{border:1px dashed #d9d9d9;padding:24px;text-align:center;color:#8c8c8c;border-radius:8px}'
+      + '</style></head><body><div class="wrap">'
+      + '<h2 style="font-size:16px;margin:0 0 4px">A+ 页面预览拼装 · ' + prod.sku + '（' + (prod.market || '-') + '）</h2>'
+      + '<div class="cap">按 A+ 五模块漏斗顺序拼装 · 导出时间 ' + new Date().toISOString().slice(0, 16).replace('T', ' ') + '</div>'
+      + '<div class="cap" style="color:#c0392b">Comparison 须为同品牌变体对比，禁止竞品对比（亚马逊合规红线）</div>'
+      + MODS.map(function(m){
+          var a = byType[m[0]];
+          return '<div class="mod"><div class="cap">' + m[1] + ' · ' + m[2] + '</div>'
+            + (a ? '<img src="' + (a.storage_ref || '') + '" alt="' + m[1] + '">' : '<div class="miss">未生成</div>')
+            + '</div>';
+        }).join('')
+      + '</div></body></html>';
+
+    window.__aplusHtml = exportHtml;
+    window.__aplusSku = String(prod.sku || 'product');
+
+    var head = panel('选择产品与预览通道',
+      '<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">'
+      + '<select class="ctl" style="min-width:240px" onchange="window._pickAplusProduct(this.value)">' + OPTS + '</select>'
+      + '<span style="font-size:12.5px;color:#8c8c8c">预览通道</span>'
+      + '<button class="btn ' + (CH === 'desktop' ? '' : 'btn--ghost') + '" onclick="window._setAplusChannel(\'desktop\')">桌面 970px</button>'
+      + '<button class="btn ' + (CH === 'mobile' ? '' : 'btn--ghost') + '" onclick="window._setAplusChannel(\'mobile\')">手机 600px</button>'
+      + '<button class="btn btn--ghost" onclick="window._exportAplusHtml()">导出 HTML</button>'
+      + '</div>');
+
+    var status = panel('五模块生成状态',
+      kv([
+        ['产品', String(prod.sku || '-') + '（' + (prod.market || '-') + '）'],
+        ['已生成模块', String(5 - missing.length) + ' / 5'],
+        ['缺失模块', missing.length ? missing.join('、') : '无'],
+        ['F_APLUS 素材总数', String(assets.length) + ' 张']
+      ]));
+
+    return head + status + panel('A+ 页面预览（' + (CH === 'mobile' ? '手机 600px' : '桌面 970px') + '）', preview,
+      {note: missing.length ? ('缺失 ' + missing.length + ' 个模块，导出后对应位置会显示「未生成」占位') : '五模块齐全，可直接导出交付'})
+      + callout('', '拼装说明', '本页只做<b>拼装与预览</b>，不生成图片：数据来自 A+ 素材（<span class="m">module=F_APLUS</span>）'
+        + '按 image_type 归位到五模块漏斗。同一模块有多张时取最新一张。「导出 HTML」产出可直接打开的独立文件，'
+        + '便于评审与交付；<b>Comparison 合规需人工复核</b>。');
+  }
+});
 page('task-pipeline', {
   roles: ['*'],
   spec: {

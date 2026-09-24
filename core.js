@@ -70,8 +70,9 @@ const NAV = [
     ['3.5','主图合规器','task-d','Module D · Source 17-A'],
     ['3.6','TEMU详情图','task-e','Module E · Source 19'],
     ['3.7','A+页面设计','task-f','Module F · Source 22'],
-    ['3.8','图案创意设计','task-g','Module G · Source 21 · 独立耦合'],
-    ['3.9','任务流水线详情','task-pipeline','Run Detail · 跨层调用链'],
+    ['3.8','A+页面预览拼装','task-f-preview','A+ Preview · HTML Assembly'],
+    ['3.9','图案创意设计','task-g','Module G · Source 21 · 独立耦合'],
+    ['3.10','任务流水线详情','task-pipeline','Run Detail · 跨层调用链'],
   ]},
   { g:'④', n:'4', t:'素材资产库', k:'asset', items:[
     ['4.1','资产画廊','asset-gallery','Generated Asset Gallery'],
@@ -648,6 +649,20 @@ window._syncMarket = async function(){
   if (!rows.length) { alert('没有可同步的记录。\n\n请先到「上架登记」页登记上架，并填写 ASIN。'); return; }
   alert('同步完成：' + rows.length + ' 条\n周期：' + (rows[0].snapshot_period || '-') + '\n\n市场侧字段已写入；曝光/点击/转化率/销量请用「录入周表现」补。');
   location.reload();
+};
+
+/* ─── A+ 页面预览拼装：产品选择 / 通道切换 / 导出 HTML ─── */
+window._pickAplusProduct = function(id){ try { sessionStorage.setItem('vf_aplus_pid', String(id||'')); } catch(e){} location.reload(); };
+window._setAplusChannel = function(ch){ try { sessionStorage.setItem('vf_aplus_ch', String(ch||'desktop')); } catch(e){} location.reload(); };
+window._exportAplusHtml = function(){
+  var html = window.__aplusHtml || '';
+  if (!html) { alert('暂无可导出内容：请先选择一个已生成 A+ 素材的产品。'); return; }
+  var sku = window.__aplusSku || 'product';
+  var blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'aplus-preview-' + sku + '.html';
+  a.click();
 };
 
 window._snapshotCreate = async function(){
