@@ -57,6 +57,21 @@ async function submitTask(moduleKey){
   if(moduleKey==='A-SCENE')payload.scene_descs=Array.from({length:count},function(_,i){return {sceneSetting:(window._fieldValue('场景风格')||'natural home setting')+'; distinct composition '+(i+1)};});
   if(moduleKey==='A-MODEL')payload.model_specs=Array.from({length:count},function(){return {modelRegion:window._fieldValue('模特地区'),bodyType:window._fieldValue('模特体型'),ageRange:window._fieldValue('模特年龄段')};});
   if(moduleKey==='F'){
+    /* 贴字文案只用真实数据：商品名 + 该商品 Product DNA 里的真实卖点 + 用户填的合规警示语。
+       没有素材就不贴字（宁缺勿造），绝不用「high quality / durable」这类编造词充数。 */
+    var pg=await L4.fetch('product.get',{sku:sku});
+    var rec=(pg.data||[])[0]||{};
+    var idn=rec.identity||{}, dna=rec.product_dna||{};
+    payload.params.product_name=String(idn.product_name||'');
+    var sp=(dna.selling_points||[]).map(function(x){return (x&&typeof x==='object')?(x.title_local||x.title_cn||''):String(x||'');}).filter(function(t){return t&&t.trim().length>2;});
+    payload.params.selling_points=sp.slice(0,4);
+    var warnEl=document.querySelector('#page .ctl--warning');
+    payload.params.warning_text=warnEl?String(warnEl.value||'').trim():'';
+    payload.params.primary_color='#1E5C8B';
+    payload.params.accent_color='#5C3A26';
+    if(!payload.params.product_name && !payload.params.selling_points.length && !payload.params.warning_text){
+      if(!confirm('该商品暂时没有可用的文案素材（商品名 / 卖点 / 警示语），本次只会生成无文案底图。要先补齐素材（跑 DNA 分析）再生成吗？\n点「确定」= 仍继续生成；点「取消」= 先不生成。')) return;
+    }
     var theme=window._fieldValue('选定主题');
     payload.params.theme=theme;
     payload.params.scene_prompt=theme.indexOf('T-CUSTOM')===0?'Use the additional reference for theme, palette and composition only; preserve the first image product exactly.':theme;
@@ -303,6 +318,7 @@ page('task-f', {
           '<label style="display:flex;align-items:center;gap:8px"><input type="radio" name="lf" checked> 重新生成（调用Layer2）</label>'+
           '<label style="display:flex;align-items:center;gap:8px"><input type="radio" name="lf"> 从资产库选择（复用已有场景图）</label>'+
         '</div>'),
+        fld('合规警示语', '<input class="ctl ctl--warning" placeholder="选填，例如 Small parts, keep away from children under 3">', '只用于 WhatsInBox 开箱图：由系统确定性贴字，不交给 AI 画'),
         fld('输出画质', pick(['1K 标准','2K 高清(推荐)']))
       ]
     });
