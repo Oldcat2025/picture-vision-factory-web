@@ -347,7 +347,8 @@ page('task-g', {
       (function(){
         var rows = (recent.data||[]).map(function(x){
           return [thumbImg(x.thumbnail_ref, 40), ledgerEscape(x.id), ledgerEscape(x.status),
-                  ledgerEscape(x.effective_model), ledgerEscape(x.cost_estimate_usd), ledgerEscape(x.created_at)];
+                  ledgerEscape(x.effective_model), ledgerEscape(x.cost_estimate_usd),
+                  ledgerEscape(String(x.created_at || '').slice(0, 16).replace('T', ' '))];
         });
         return rows.length ? rows : [['<span class="ghost">暂无任务，提交后显示</span>','','','','','']];
       })()
