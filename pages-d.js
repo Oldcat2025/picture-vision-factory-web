@@ -641,11 +641,20 @@ page('track-publish', {
   body: async function(){
     var r = await L4.fetch('listing.list', {table:'publication', limit:100});
     if (!r.success) return callout('warn', '数据加载失败', r.error || '未知错误');
+    var rows = r.data || [];
+    var noAsin = rows.filter(function(x){ return !String(x.asin || '').trim(); }).length;
+    var gap = (rows.length && noAsin)
+      ? callout('warn', noAsin + ' 条登记还没填 ASIN（本商品真实 ASIN）',
+          '这些记录只能作为「已上架」的登记，<b>无法进入 8.2「按 ASIN 同步市场数据」</b>——同步是按 ASIN 去抓价格/评分/评论数的。'
+          + '<br>补齐入口：回到本页重新登记一条（填 ASIN + Listing 链接），或在 n8n 侧补数据。'
+          + '<br><b>注意</b>：竞品参照 ASIN 不能当成本商品 ASIN 登记，两者含义不同。')
+      : '';
     return toolbar(
       [inp('搜索SKU...'), sel('渠道',['全部'])],
       [btn('登记新上架',null,"window._publishCreate()"), btn('导出','btn--ghost',"window._exportCsv()")]
     ) +
-    cfgTable(r.data || [], '暂无上架登记记录');
+    gap +
+    cfgTable(rows, '暂无上架登记记录');
   }
 });
 
