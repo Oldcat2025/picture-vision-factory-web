@@ -229,27 +229,33 @@ page('task-d', {
   },
   guide: [
     '<b>模块D与其他模块的关键差异：</b>输入是任意产品照片（不限SKU库存），不走Layer0/Layer1',
-    '合规阈值默认90分，低于此分会调用Layer2重新生成主图',
-    '已合规图片（≥90分）直接透传，不消耗生图额度'
+    '已合规图片（≥阈值）直接透传，不消耗生图额度；低于阈值才调用 Layer2 重新生成',
+    '输出固定 1:1 方图：1K 档约 1024px、2K 档约 2048px（亚马逊主图要求长边 ≥1600px，建议选 2K）',
+    '上传多张即多个候选（单次最多 5 张），逐张独立检测'
   ],
-  body: function(){
+  body: async function(){
+    var tr = await L4.fetch('product.task', {module: 'D_MAIN_IMAGE', limit: 5});
+    var rows = (tr.success ? (tr.data || []) : []).map(function(t){
+      return [
+        thumbImg(t.thumbnail_ref, 40),
+        '<span class="m">' + String(t.id || '').slice(0, 8) + '</span>',
+        t.sku || '-',
+        chip(t.status || '-', t.status === 'SUCCESS' ? 'ok' : (t.status === 'FAILED' ? 'err' : 'warn')),
+        String(t.created_at || '').slice(0, 16)
+      ];
+    });
+    var taskTable = rows.length ? rows : [['<span class="ghost">暂无任务，提交后显示</span>','','','','']];
     return callout('','本模块独立于SKU身份库',
       '模块D处理任意产品照片的主图合规化，<b>不需要提前在产品身份库登记SKU</b>。上传图片后直接检测合规度。'
     ) +
     panel('图片上传与参数', '<div class="form">'+
-      fld('棚拍图上传', '<input type="file" class="ctl" accept="image/*">')+
-      fld('合规阈值', txt('90',''), '1-100分，低于此分触发Layer2重新生成')+
-      fld('候选数量', pick(['1张(快速)','3张(推荐)','5张(多选)']))+
-      fld('输出尺寸', pick(['2000×2000(亚马逊标准)','自定义...']))+
+      fld('棚拍图上传', '<input type="file" class="ctl" accept="image/*" multiple>', '单次最多5张，每张独立检测')+
+      fld('合规阈值', txt('90',''), '随请求提交；工作流内的实际判定阈值以模块D工作流配置为准')+
+      fld('输出画质', pick(['1K','2K(推荐)']))+
+      fld('生图模型', pick(['自动选择','Gemini优先','GPT优先']))+
     '</div>') +
     '<div class="btnrow">'+btn('提交检测',null,"window._submitImage('D','主图合规检测')")+btn('批量上传（最多5张）','btn--ghost',"window._batchImages()")+'</div>' +
-    panel('最近任务', table(
-      ['任务ID','原图','合规分','状态','处理时间'],
-      [
-        ['<span class="m">TASK-D-20260819-008</span>','product_raw_1.jpg','<b style="color:var(--red)">68</b>',chip('已重生成','ok'),'14:35'],
-        ['<span class="m">TASK-D-20260819-009</span>','product_raw_2.jpg','<b style="color:var(--gr-600)">94</b>',chip('合规透传','ok'),'14:42']
-      ]
-    ));
+    panel('最近任务', table(['缩略图','任务ID','SKU','状态','提交时间'], taskTable));
   }
 });
 
