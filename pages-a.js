@@ -371,34 +371,58 @@ page('pid-sorftime', {
     reads: ['tenant_oldcat.sorftime_cache'],
     limits: ['不展示raw_response原始字段（02契约）']
   },
+  guide: [
+    '列表按抓取时间倒序，<b>每条竞品的标题/价格/评论数</b>直接取自缓存；下方详情为最近一条的完整字段',
+    '「缓存新鲜」按 7 天有效期判定：过期后首次 Layer1 调用会触发 MCP 重新抓取（约30-60s）',
+    'SORFTIME 未返回的字段（如评分）<b>如实留空显示「-」</b>，不虚构'
+  ],
   body: async function(){
-    var r = await L4.fetch('product.sorftime', {limit: 10});
+    var r = await L4.fetch('product.sorftime', {limit: 50});
     if (!r.success) return callout('warn', '数据加载失败', r.error || '未知错误');
     var rows = r.data || [];
     if (!rows.length) return panel('竞品情报（SORFTIME Cache）', ghost('暂无竞品情报缓存，先跑一次 SORFTIME 抓取'))
       + callout('','缓存策略','SORFTIME数据默认7天有效期。过期后首次Layer1调用会触发MCP重新抓取（约30-60s），期间前端显示琥珀色"正在刷新"提示。');
+    var cell = function(v){ return (v === null || v === undefined || v === '') ? '<span class="ghost">-</span>' : ledgerEscape(v); };
+    var trows = rows.map(function(x){
+      var fresh = x.ttl_expires_at && new Date(x.ttl_expires_at) > new Date();
+      return [
+        ledgerEscape(x.competitor_ref || '-'),
+        ledgerEscape(x.ref_type || '-'),
+        ledgerEscape(x.market || '-'),
+        cell(x.title),
+        (x.price !== null && x.price !== undefined && x.price !== '') ? ('$' + x.price) : '<span class="ghost">-</span>',
+        (x.rating !== null && x.rating !== undefined && x.rating !== '') ? x.rating : '<span class="ghost">-</span>',
+        (x.review_count !== null && x.review_count !== undefined) ? String(x.review_count) : '<span class="ghost">-</span>',
+        fresh ? chip('新鲜','ok') : chip('已过期','warn'),
+        String(x.fetched_at || '-').slice(0,16).replace('T',' ')
+      ];
+    });
     var item = rows[0];
     var nf = (item.normalized_fields && typeof item.normalized_fields === 'object') ? item.normalized_fields : {};
-    var isFresh = item.ttl_expires_at && new Date(item.ttl_expires_at) > new Date();
-    var fresh = isFresh
-      ? '<span style="font-size:12px;color:var(--t-3)">缓存新鲜 · 抓取于 ' + String(item.fetched_at||'').slice(0,16) + '</span>'
-      : '<span style="font-size:12px;color:var(--t-2)">缓存已过期 · 下次调用将重新抓取</span>';
+    var pd = (nf.product_detail && typeof nf.product_detail === 'object') ? nf.product_detail : {};
     var kw = Array.isArray(item.hot_keywords) ? item.hot_keywords.join(' · ')
-      : (typeof item.hot_keywords === 'object' && item.hot_keywords ? Object.keys(item.hot_keywords).join(' · ') : '-');
-    return panel('竞品情报（SORFTIME Cache）',
-      kv([
-        ['竞品参考', item.competitor_ref || '-'],
-        ['类型', item.ref_type || '-'],
-        ['市场', item.market || '-'],
-        ['标题', nf.title || '-'],
-        ['价格', nf.price ? '$'+nf.price : '-'],
-        ['评分', nf.rating || '-'],
-        ['评论数', nf.review_count || '-'],
-        ['VOC摘要', nf.voc_summary || '-'],
-        ['热搜关键词', kw]
-      ]) + fresh
-    ) +
-    callout('','缓存策略','SORFTIME数据默认7天有效期。过期后首次Layer1调用会触发MCP重新抓取（约30-60s），期间前端显示琥珀色"正在刷新"提示。');
+      : (typeof item.hot_keywords === 'object' && item.hot_keywords ? Object.keys(item.hot_keywords).join(' · ') : '');
+    if (Array.isArray(nf.keywords) && nf.keywords.length) kw = nf.keywords.join(' · ');
+    var isFresh = item.ttl_expires_at && new Date(item.ttl_expires_at) > new Date();
+    var detail = kv([
+      ['竞品参考', item.competitor_ref || '-'],
+      ['类型 / 市场', (item.ref_type || '-') + ' / ' + (item.market || '-')],
+      ['标题', item.title || pd.title || '-'],
+      ['价格', (item.price !== null && item.price !== undefined) ? ('$' + item.price) : (pd.price ? ('$' + pd.price) : '-')],
+      ['评分', (item.rating !== null && item.rating !== undefined && item.rating !== '') ? item.rating : '<span class="ghost">SORFTIME 未返回</span>'],
+      ['评论数', String(item.review_count !== null && item.review_count !== undefined ? item.review_count : '-')],
+      ['VOC摘要', item.voc_summary || '<span class="ghost">暂无</span>'],
+      ['热搜关键词', kw || '<span class="ghost">暂无</span>'],
+      ['类目', nf.category_name || '<span class="ghost">-</span>']
+    ]);
+    return panel('竞品情报缓存（共 ' + rows.length + ' 条）',
+        table(['竞品参考','类型','市场','标题','价格','评分','评论数','缓存状态','抓取时间'], trows),
+        {note:'缓存有效期 7 天；过期条目在下次 Layer1 调用时自动重抓。'})
+      + panel('最近一条详情 · ' + (item.competitor_ref || '-'),
+        detail + '<div style="font-size:12px;color:var(--t-3);margin-top:8px">'
+        + (isFresh ? ('缓存新鲜 · 抓取于 ' + String(item.fetched_at||'').slice(0,16).replace('T',' '))
+                   : '缓存已过期 · 下次调用将重新抓取') + '</div>')
+      + callout('','缓存策略','SORFTIME数据默认7天有效期。过期后首次Layer1调用会触发MCP重新抓取（约30-60s），期间前端显示琥珀色"正在刷新"提示。');
   }
 });
 
