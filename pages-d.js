@@ -21,6 +21,7 @@ var CFG_LABELS = {
   accent_color_hex:'强调色', pattern_keywords:'图案关键词', big_title_hook:'Banner主标题', badge:'角标',
   icon_bullets:'Detail图标文案', cta:'CTA文案', emotion_anchor:'情绪锚点', reference_image_urls:'参考图',
   decisive_moment:'决定性瞬间', ia6_params:'IA6人设覆盖', lighting_anchor:'光线锚点', is_custom:'自定义',
+  cosmo_default_cohort:'默认人群画像',
   active:'状态', trigger_keyword:'触发词', category_tag:'品类标签', forced_model:'强制模型', reason:'原因',
   provider:'提供方', model:'模型', key_hint:'密钥(脱敏)', version_tag:'版本标签', default_quality:'默认画质',
   default_aspect_ratio_map:'默认比例', watermark_config:'水印配置', monthly_budget_usd:'月预算(USD)',
@@ -30,9 +31,12 @@ var CFG_LABELS = {
 function cfgTable(rows, emptyMsg){
   if (!rows || !rows.length) return ghost(emptyMsg || '暂无配置数据');
   /* thumbnail_ref 不按原文展示，改成缩略图列（同表有商品维度时才出现） */
-  /* 全空列不展示（例如 brand_blacklist.added_by 目前无写入方），避免整列「-」占位占地方 */
+  /* 全空列不展示（例如 brand_blacklist.added_by 目前无写入方），避免整列「-」占位占地方；
+     但 ASIN / 上架链接 这类「必须填」的栏位即使暂时为空也要露出，否则缺值会被静默藏掉 */
+  var KEEP_ALWAYS = ['asin', 'listing_url'];
   var keys = Object.keys(rows[0]).filter(function(k){
     if (k === 'id' || k === 'thumbnail_ref') return false;
+    if (KEEP_ALWAYS.indexOf(k) >= 0) return true;
     return rows.some(function(r){ var v = r && r[k]; return !(v === null || v === undefined || v === ''); });
   });
   var hasThumb = rows.some(function(r){ return r && r.thumbnail_ref; });
