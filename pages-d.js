@@ -13,12 +13,28 @@ var CFG_LABELS = {
   version:'版本', description:'说明', applied_at:'应用时间', thumbnail_ref:'缩略图',
   asin:'ASIN', title:'标题', price:'价格', rating:'评分', review_count:'评论数',
   monthly_sales_volume:'月销量(估算)', bsr:'类目排名', raw_payload:'原始返回',
+  brand_name:'品牌名', category_scope:'适用品类', added_by:'登记人', note:'说明',
+  region:'地区', body_type:'体型', age_band:'年龄段', height_ratio:'头身比', bmi_range:'BMI范围',
+  market_code:'市场代码', language:'语言', currency:'货币', overlay_language_default:'水印默认语言',
+  object_name:'参照物', dimensions:'尺寸', applicable_image_types:'适用图片类型',
+  theme_name:'主题名', season_anchor:'季节锚点', primary_color_hex:'主色', secondary_color_hex:'辅色',
+  accent_color_hex:'强调色', pattern_keywords:'图案关键词', big_title_hook:'Banner主标题', badge:'角标',
+  icon_bullets:'Detail图标文案', cta:'CTA文案', emotion_anchor:'情绪锚点', reference_image_urls:'参考图',
+  decisive_moment:'决定性瞬间', ia6_params:'IA6人设覆盖', lighting_anchor:'光线锚点', is_custom:'自定义',
+  active:'状态', trigger_keyword:'触发词', category_tag:'品类标签', forced_model:'强制模型', reason:'原因',
+  provider:'提供方', model:'模型', key_hint:'密钥(脱敏)', version_tag:'版本标签', default_quality:'默认画质',
+  default_aspect_ratio_map:'默认比例', watermark_config:'水印配置', monthly_budget_usd:'月预算(USD)',
+  alert_threshold_ratio:'告警阈值', updated_by:'更新人', updated_at:'更新时间',
   prompt_tokens:'输入tokens', completion_tokens:'输出tokens', total_prompt_tokens:'输入tokens合计', total_completion_tokens:'输出tokens合计', call_count:'调用次数', success_count:'成功', failed_count:'失败', partial_count:'部分成功', total_cost_usd:'成本合计(USD)', total_duration_ms:'耗时合计(ms)', retry_count:'重试次数', fallback_count:'降级次数'
 };
 function cfgTable(rows, emptyMsg){
   if (!rows || !rows.length) return ghost(emptyMsg || '暂无配置数据');
   /* thumbnail_ref 不按原文展示，改成缩略图列（同表有商品维度时才出现） */
-  var keys = Object.keys(rows[0]).filter(function(k){ return k !== 'id' && k !== 'thumbnail_ref'; });
+  /* 全空列不展示（例如 brand_blacklist.added_by 目前无写入方），避免整列「-」占位占地方 */
+  var keys = Object.keys(rows[0]).filter(function(k){
+    if (k === 'id' || k === 'thumbnail_ref') return false;
+    return rows.some(function(r){ var v = r && r[k]; return !(v === null || v === undefined || v === ''); });
+  });
   var hasThumb = rows.some(function(r){ return r && r.thumbnail_ref; });
   var cols = keys.map(function(k){ return CFG_LABELS[k] || k; });
   if (hasThumb) cols = ['缩略图'].concat(cols);
